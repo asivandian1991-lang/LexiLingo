@@ -253,7 +253,7 @@ class _LexiChatPageState extends State<LexiChatPage>
     setState(() => _isWebSpeechActive = true);
 
     final stream = _webSpeech!.startListening(
-      language: 'en-US',
+      language: context.read<LexiChatProvider>().tutor.voiceLocale,
       continuous: true,
     );
 
