@@ -3,44 +3,32 @@ $ErrorActionPreference = "Stop"
 $flutterApp = Split-Path -Parent $PSScriptRoot
 $repoRoot = Split-Path -Parent $flutterApp
 
-Write-Host "LexiLingo Android clean runner" -ForegroundColor Cyan
+Write-Host "LexiLingo Android runner" -ForegroundColor Cyan
 Write-Host "Repo: $repoRoot"
 
 # Keep Pub cache on the same drive as the project to avoid Kotlin cross-drive
-# incremental cache errors on Windows.
+# cache issues on Windows. This only changes the cache location for this process.
 $env:PUB_CACHE = Join-Path $repoRoot ".pub-cache"
 Write-Host "PUB_CACHE: $env:PUB_CACHE"
 
-# Stop Gradle cleanly.
-Set-Location (Join-Path $flutterApp "android")
+Set-Location $flutterApp
+
+Write-Host "Stopping Gradle daemons..."
 try {
+    Push-Location (Join-Path $flutterApp "android")
     & .\gradlew --stop
 } catch {
     Write-Host "No active Gradle daemon to stop." -ForegroundColor DarkGray
+} finally {
+    Pop-Location
 }
 
-# Always return to the Flutter project root before running Flutter commands.
 Set-Location $flutterApp
 
+# Use Flutter's own cleanup only. Do not recursively delete arbitrary paths.
 Write-Host "Running flutter clean..."
 & flutter clean
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-# Only remove the obsolete flutter_soloud cache folder if it exists.
-# Do NOT recursively delete android/.gradle with cmd.exe; malformed quoting on
-# Windows can escape to the drive root.
-$obsoleteSoLoud = Join-Path $env:PUB_CACHE "hosted\pub.dev\flutter_soloud-3.5.4"
-if (Test-Path -LiteralPath $obsoleteSoLoud) {
-    Write-Host "Removing obsolete flutter_soloud cache..."
-    try {
-        [System.IO.Directory]::Delete($obsoleteSoLoud, $true)
-    } catch {
-        Write-Host "Could not fully remove obsolete flutter_soloud cache; continuing." -ForegroundColor Yellow
-    }
-}
-
-# Make absolutely sure the current directory is the Flutter app.
-Set-Location $flutterApp
 
 Write-Host "Resolving packages..."
 & flutter pub get
