@@ -546,7 +546,7 @@ class AuthProvider extends ChangeNotifier {
       goal: payload['goal'] as String?,
       interest: payload['interest'] as String?,
       nativeLanguage: nativeLanguage ?? 'vi',
-      targetLanguage: 'en',
+      targetLanguage: (payload['target_language'] as String?) ?? 'en',
       isOnboardingCompleted: true,
     );
 
