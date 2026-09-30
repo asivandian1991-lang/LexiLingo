@@ -118,8 +118,12 @@ void main() async {
   debugPrint('Backend API base URL: ${ApiConfig.baseUrl}');
   debugPrint('AI service base URL: ${ApiConfig.aiServiceUrl}');
 
-  // Initialize Firebase
-  try {
+  final firebaseEnabled =
+      (dotenv.maybeGet('FIREBASE_ENABLED') ?? 'false').toLowerCase() == 'true';
+
+  // Initialize Firebase only after adding your own Firebase project config.
+  if (firebaseEnabled) {
+    try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -137,8 +141,11 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     // Push notification permission should not block app startup
     // so we delay it until after runApp()
-  } catch (e) {
-    debugPrint('Warning: Firebase initialization failed: $e');
+    } catch (e) {
+      debugPrint('Warning: Firebase initialization failed: $e');
+    }
+  } else {
+    debugPrint('Firebase disabled for this build.');
   }
 
   // Initialize Dependency Injection (skip database on web)
@@ -175,7 +182,7 @@ void main() async {
 
   // Wrap runApp in runZonedGuarded so uncaught async errors are forwarded to
   // Crashlytics. In release mode only — dev keeps the default red-screen behavior.
-  if (!kIsWeb && kReleaseMode) {
+  if (!kIsWeb && kReleaseMode && firebaseEnabled) {
     runZonedGuarded(
       () => runApp(
         EasyLocalization(
@@ -221,11 +228,13 @@ void main() async {
 
   // Initialize Firebase Messaging and Deep Links after UI starts rendering
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    try {
-      await FirebaseMessagingService.instance.initialize();
-      debugPrint('Firebase Messaging initialized successfully');
-    } catch (e) {
-      debugPrint('Warning: Firebase Messaging initialization failed: $e');
+    if (firebaseEnabled) {
+      try {
+        await FirebaseMessagingService.instance.initialize();
+        debugPrint('Firebase Messaging initialized successfully');
+      } catch (e) {
+        debugPrint('Warning: Firebase Messaging initialization failed: $e');
+      }
     }
     try {
       await DeepLinkService.instance.init();
