@@ -48,6 +48,7 @@ class LexiChatProvider extends ChangeNotifier {
   Future<String> transcribeAudio(Uint8List bytes) async {
     final result = await _aiClient.postMultipart(
       '/stt/transcribe',
+      fields: {'language': _tutor.voiceLocale.split('-').first},
       fileField: 'audio',
       fileBytes: bytes,
       filename: 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
