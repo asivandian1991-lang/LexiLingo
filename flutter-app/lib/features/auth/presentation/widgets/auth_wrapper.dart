@@ -205,7 +205,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     await prefs.remove(_preAuthAnswersKey);
 
     await authProvider.submitOnboarding(
-      answers.toJson(),
+      {
+        ...answers.toJson(),
+        if (preAuth?.targetLanguage != null)
+          'target_language': preAuth!.targetLanguage,
+      },
       displayName: (preAuth?.name.isNotEmpty ?? false) ? preAuth!.name : null,
       nativeLanguage: preAuth?.nativeLanguage,
     );
