@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
     // height (screen height minus safe-area insets minus the on-screen
     // keyboard, when open). This replaces a hard isCompact cutoff that only
     // looked at static screen height and never reacted to the keyboard —
-    // which is exactly why the Google/Facebook buttons could end up pushed
+    // which is exactly why the Google button could end up pushed
     // below the fold while typing on shorter phones. Below `_tightHeight`
     // everything uses the tightest (compact) spacing already tuned to keep
     // the social-login row on screen; above `_roomyHeight` everything uses
@@ -540,26 +540,6 @@ class _LoginPageState extends State<LoginPage> {
                                     },
                               icon: const Icon(Icons.g_mobiledata, size: 26),
                               label: const Text('Google'),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: SizedBox(
-                            height: gap(56, 44),
-                            child: OutlinedButton.icon(
-                              onPressed: authProvider.isLoading
-                                  ? null
-                                  : () async {
-                                      await authProvider.signInWithFacebook();
-                                    },
-                              icon: const Icon(Icons.facebook, size: 22),
-                              label: const Text('Facebook'),
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
