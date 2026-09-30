@@ -476,6 +476,7 @@ async def run_lexi_pipeline(
             learner_profile={
                 "level": request.learner_level,
                 "native_language": iso_to_language_name(request.native_language),
+                **({"tutor_context": request.story_context} if request.story_context else {}),
                 **({"session_recap": session_recap} if session_recap else {}),
             },
             conversation_history=history,
@@ -514,6 +515,7 @@ async def run_lexi_pipeline(
                 learner_profile={
                     "level": request.learner_level,
                     "native_language": iso_to_language_name(request.native_language),
+                    **({"tutor_context": request.story_context} if request.story_context else {}),
                 },
                 conversation_history=[],
                 cache_policy="off",
@@ -836,6 +838,7 @@ async def stream_lexi_chat(
                 learner_profile={
                     "level": request.learner_level,
                     "native_language": iso_to_language_name(request.native_language),
+                    **({"tutor_context": request.story_context} if request.story_context else {}),
                     **({"session_recap": session_recap} if session_recap else {}),
                 },
                 conversation_history=history,
