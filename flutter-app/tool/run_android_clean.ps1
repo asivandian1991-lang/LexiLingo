@@ -6,10 +6,12 @@ $repoRoot = Split-Path -Parent $flutterApp
 Write-Host "LexiLingo Android clean runner" -ForegroundColor Cyan
 Write-Host "Repo: $repoRoot"
 
-# Keep pub sources and the Android project on the same Windows drive.
+# Keep Pub cache on the same drive as the project to avoid Kotlin cross-drive
+# incremental cache errors on Windows.
 $env:PUB_CACHE = Join-Path $repoRoot ".pub-cache"
 Write-Host "PUB_CACHE: $env:PUB_CACHE"
 
+# Stop Gradle cleanly.
 Set-Location (Join-Path $flutterApp "android")
 try {
     & .\gradlew --stop
@@ -17,33 +19,28 @@ try {
     Write-Host "No active Gradle daemon to stop." -ForegroundColor DarkGray
 }
 
+# Always return to the Flutter project root before running Flutter commands.
 Set-Location $flutterApp
 
-# Let Flutter remove generated files first.
 Write-Host "Running flutter clean..."
 & flutter clean
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "flutter clean returned code $LASTEXITCODE; continuing with hard cleanup." -ForegroundColor Yellow
-}
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# Windows PowerShell Remove-Item can fail on deep/vanishing Android build paths.
-# Use cmd.exe rd instead; it is much more reliable for Gradle/Firebase output.
-$paths = @(
-    (Join-Path $flutterApp "build"),
-    (Join-Path $flutterApp ".dart_tool"),
-    (Join-Path $flutterApp "android\.gradle"),
-    (Join-Path $repoRoot ".pub-cache\hosted\pub.dev\flutter_soloud-3.5.4")
-)
-
-foreach ($path in $paths) {
-    if (Test-Path -LiteralPath $path) {
-        Write-Host "Removing $path"
-        cmd.exe /d /c "rd /s /q \"$path\"" | Out-Null
-        if (Test-Path -LiteralPath $path) {
-            Write-Host "Warning: could not completely remove $path; continuing." -ForegroundColor Yellow
-        }
+# Only remove the obsolete flutter_soloud cache folder if it exists.
+# Do NOT recursively delete android/.gradle with cmd.exe; malformed quoting on
+# Windows can escape to the drive root.
+$obsoleteSoLoud = Join-Path $env:PUB_CACHE "hosted\pub.dev\flutter_soloud-3.5.4"
+if (Test-Path -LiteralPath $obsoleteSoLoud) {
+    Write-Host "Removing obsolete flutter_soloud cache..."
+    try {
+        [System.IO.Directory]::Delete($obsoleteSoLoud, $true)
+    } catch {
+        Write-Host "Could not fully remove obsolete flutter_soloud cache; continuing." -ForegroundColor Yellow
     }
 }
+
+# Make absolutely sure the current directory is the Flutter app.
+Set-Location $flutterApp
 
 Write-Host "Resolving packages..."
 & flutter pub get
