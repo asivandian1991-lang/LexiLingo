@@ -8,3 +8,6 @@ ENABLE_VOICE_FEATURE=true
 ENABLE_GAMIFICATION=true
 DEBUG_MODE=false
 GOOGLE_SERVER_CLIENT_ID=432329288238-co06he7ecljb7ubupm5mj84t3i0r1u7j.apps.googleusercontent.com
+
+# Enable only after adding your own Firebase project files.
+FIREBASE_ENABLED=false
