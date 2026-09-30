@@ -8,6 +8,7 @@ import 'package:lexilingo_app/features/course/domain/entities/course_detail_enti
 import 'package:lexilingo_app/features/learning/presentation/screens/learning_session_screen.dart';
 import 'package:lexilingo_app/features/learning/presentation/screens/learning_roadmap_screen.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
+import 'package:lexilingo_app/features/premium/presentation/screens/paywall_screen.dart';
 
 /// Course Detail Screen
 /// Shows course roadmap with units and lessons
@@ -552,19 +553,24 @@ class _LessonTile extends StatelessWidget {
             ),
         ],
       ),
-      onTap: isLocked
-          ? null
-          : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LearningSessionScreen(
-                    lessonId: lesson.id,
-                    courseId: courseId,
-                  ),
-                ),
-              );
-            },
+      onTap: () {
+        if (isLocked) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PaywallScreen()),
+          );
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LearningSessionScreen(
+              lessonId: lesson.id,
+              courseId: courseId,
+            ),
+          ),
+        );
+      },
     );
   }
 
