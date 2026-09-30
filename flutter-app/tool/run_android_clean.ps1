@@ -7,8 +7,6 @@ Write-Host "LexiLingo Android clean runner" -ForegroundColor Cyan
 Write-Host "Repo: $repoRoot"
 
 # Keep pub sources and the Android project on the same Windows drive.
-# This avoids Kotlin's different-roots incremental-cache failure when the
-# default PUB_CACHE lives under C:\Users while the repository lives on D:.
 $env:PUB_CACHE = Join-Path $repoRoot ".pub-cache"
 Write-Host "PUB_CACHE: $env:PUB_CACHE"
 
@@ -21,22 +19,31 @@ try {
 
 Set-Location $flutterApp
 
+# Let Flutter remove generated files first.
+Write-Host "Running flutter clean..."
+& flutter clean
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "flutter clean returned code $LASTEXITCODE; continuing with hard cleanup." -ForegroundColor Yellow
+}
+
+# Windows PowerShell Remove-Item can fail on deep/vanishing Android build paths.
+# Use cmd.exe rd instead; it is much more reliable for Gradle/Firebase output.
 $paths = @(
     (Join-Path $flutterApp "build"),
     (Join-Path $flutterApp ".dart_tool"),
-    (Join-Path $flutterApp "android\.gradle")
+    (Join-Path $flutterApp "android\.gradle"),
+    (Join-Path $repoRoot ".pub-cache\hosted\pub.dev\flutter_soloud-3.5.4")
 )
 
 foreach ($path in $paths) {
-    if (Test-Path $path) {
+    if (Test-Path -LiteralPath $path) {
         Write-Host "Removing $path"
-        Remove-Item -Recurse -Force $path
+        cmd.exe /d /c "rd /s /q \"$path\"" | Out-Null
+        if (Test-Path -LiteralPath $path) {
+            Write-Host "Warning: could not completely remove $path; continuing." -ForegroundColor Yellow
+        }
     }
 }
-
-Write-Host "Running flutter clean..."
-& flutter clean
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Resolving packages..."
 & flutter pub get
