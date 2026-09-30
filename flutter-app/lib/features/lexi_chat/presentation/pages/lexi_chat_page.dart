@@ -9,9 +9,11 @@ import 'package:lexilingo_app/core/widgets/lottie_loading_widget.dart';
 import 'package:lexilingo_app/core/di/service_locator.dart';
 import 'package:lexilingo_app/core/network/api_config.dart';
 import 'package:lexilingo_app/core/services/locale_service.dart';
+import 'package:lexilingo_app/core/services/purchases_service.dart';
 import 'package:lexilingo_app/core/voice/duplex_voice_client.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
 import 'package:lexilingo_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:lexilingo_app/features/user/presentation/providers/settings_provider.dart';
@@ -22,6 +24,7 @@ import 'package:lexilingo_app/features/lexi_chat/presentation/widgets/lexi_typin
 import 'package:lexilingo_app/features/lexi_chat/presentation/widgets/lexi_corrections_sheet.dart';
 import 'package:lexilingo_app/features/voice/data/datasources/speech_recognition_service.dart';
 import 'package:lexilingo_app/features/tutor/domain/ai_tutor.dart';
+import 'package:lexilingo_app/features/premium/presentation/screens/paywall_screen.dart';
 
 /// Lexi Chat Page — Minimalist design with clean conversation UI.
 ///
@@ -68,6 +71,9 @@ class _LexiChatPageState extends State<LexiChatPage>
       _isTranscribing ||
       _isWebSpeechActive ||
       _isDuplexVoiceActive;
+
+  static const int _freeTutorTurns = 3;
+  static const String _freeTutorTurnsKey = 'free_ai_tutor_turns_used';
 
   int _lastMessageCount = 0;
   List<String> get _quickReplies => [
@@ -141,6 +147,7 @@ class _LexiChatPageState extends State<LexiChatPage>
       if (mounted) setState(() => _isDuplexVoiceActive = false);
       return;
     }
+    if (!await _consumeTutorTurn()) return;
     try {
       final provider = context.read<LexiChatProvider>();
       if (!provider.hasSession) await provider.startSession(_userId);
@@ -177,6 +184,25 @@ class _LexiChatPageState extends State<LexiChatPage>
     }
   }
 
+  Future<bool> _consumeTutorTurn() async {
+    if (await PurchasesService.instance.isPremium) {
+      return true;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final used = prefs.getInt(_freeTutorTurnsKey) ?? 0;
+    if (used < _freeTutorTurns) {
+      await prefs.setInt(_freeTutorTurnsKey, used + 1);
+      return true;
+    }
+
+    if (!mounted) return false;
+    final purchased = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const PaywallScreen()),
+    );
+    return purchased == true || await PurchasesService.instance.isPremium;
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -202,6 +228,7 @@ class _LexiChatPageState extends State<LexiChatPage>
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    if (!await _consumeTutorTurn()) return;
     _controller.clear();
 
     final provider = context.read<LexiChatProvider>();
