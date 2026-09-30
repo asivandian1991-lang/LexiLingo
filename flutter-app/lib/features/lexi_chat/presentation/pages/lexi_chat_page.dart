@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lexilingo_app/core/widgets/lottie_loading_widget.dart';
 import 'package:lexilingo_app/core/di/service_locator.dart';
@@ -20,6 +21,7 @@ import 'package:lexilingo_app/features/lexi_chat/presentation/widgets/lexi_dialo
 import 'package:lexilingo_app/features/lexi_chat/presentation/widgets/lexi_typing_indicator.dart';
 import 'package:lexilingo_app/features/lexi_chat/presentation/widgets/lexi_corrections_sheet.dart';
 import 'package:lexilingo_app/features/voice/data/datasources/speech_recognition_service.dart';
+import 'package:lexilingo_app/features/tutor/domain/ai_tutor.dart';
 
 /// Lexi Chat Page — Minimalist design with clean conversation UI.
 ///
@@ -30,7 +32,9 @@ import 'package:lexilingo_app/features/voice/data/datasources/speech_recognition
 ///  - Free-form conversation focused on natural English practice
 ///  - Dark/light theme support
 class LexiChatPage extends StatefulWidget {
-  const LexiChatPage({super.key});
+  final AiTutor? tutor;
+
+  const LexiChatPage({super.key, this.tutor});
 
   @override
   State<LexiChatPage> createState() => _LexiChatPageState();
@@ -78,6 +82,9 @@ class _LexiChatPageState extends State<LexiChatPage>
     // Restore latest session first; create new only when needed.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<LexiChatProvider>();
+      if (widget.tutor != null) {
+        provider.setTutor(widget.tutor!);
+      }
       provider.syncTtsWithGlobalSound(
         context.read<SettingsProvider>().soundEnabled,
       );
@@ -379,11 +386,119 @@ class _LexiChatPageState extends State<LexiChatPage>
           child: Column(
             children: [
               _buildHeader(isDark),
+              _buildTutorHero(provider, isDark),
               Expanded(child: _buildMessageList(isDark)),
               _buildInputBar(isDark),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTutorHero(LexiChatProvider provider, bool isDark) {
+    final tutor = provider.tutor;
+    final active = provider.isLexiResponding || _isVoiceActive;
+
+    return Container(
+      height: 190,
+      margin: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: const RadialGradient(
+          center: Alignment(0.25, -0.2),
+          radius: 1.0,
+          colors: [Color(0xFF3765AD), Color(0xFF17233A)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? .30 : .12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: -4,
+            bottom: 0,
+            child: SvgPicture.asset(
+              tutor.avatarAsset,
+              width: 176,
+              height: 188,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            left: 168,
+            right: 16,
+            top: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tutor.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${tutor.accent} • ${provider.learnerLevel}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: active
+                        ? const Color(0xFF3E9CF4)
+                        : Colors.white.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        active ? Icons.graphic_eq_rounded : Icons.mic_none_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          active ? 'Listening & responding…' : 'Tap the mic and speak',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  tutor.teachingStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -430,7 +545,7 @@ class _LexiChatPageState extends State<LexiChatPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'lexiChat.title'.tr(),
+                  context.watch<LexiChatProvider>().tutorName,
                   style: TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w700,
