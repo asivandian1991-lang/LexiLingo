@@ -20,19 +20,15 @@ import 'package:lexilingo_app/features/auth/domain/usecases/sign_in_with_email_p
 import 'package:lexilingo_app/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:lexilingo_app/features/auth/domain/usecases/register_usecase.dart';
 
-import 'package:lexilingo_app/features/auth/domain/usecases/sign_in_with_facebook_usecase.dart';
-import 'package:lexilingo_app/core/services/facebook_sign_in_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
-  final SignInWithFacebookUseCase signInWithFacebookUseCase;
   final SignInWithEmailPasswordUseCase signInWithEmailPasswordUseCase;
   final SignOutUseCase signOutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
   final RegisterUseCase registerUseCase;
   final AuthRepository authRepository;
   final GoogleSignInService googleSignInService;
-  final FacebookSignInService facebookSignInService;
 
   UserEntity? _user;
   bool _isLoading = false;
@@ -43,14 +39,12 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider({
     required this.signInWithGoogleUseCase,
-    required this.signInWithFacebookUseCase,
     required this.signInWithEmailPasswordUseCase,
     required this.signOutUseCase,
     required this.getCurrentUserUseCase,
     required this.registerUseCase,
     required this.authRepository,
     required this.googleSignInService,
-    required this.facebookSignInService,
   }) {
     _checkCurrentUser();
     _sessionExpiredSub = SessionExpiredService.instance.onSessionExpired.listen(
@@ -218,53 +212,6 @@ class AuthProvider extends ChangeNotifier {
         unawaited(_claimPendingReferral());
       },
     );
-  }
-
-  // Sign in with Facebook
-  Future<void> signInWithFacebook() async {
-    try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      // Get Firebase ID token via Facebook authentication
-      final idToken = await facebookSignInService.signIn();
-      if (idToken == null) {
-        _errorMessage = 'Facebook sign in was cancelled or failed';
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final result = await signInWithFacebookUseCase(
-        SignInWithFacebookParams(idToken: idToken),
-      );
-
-      result.fold(
-        (failure) {
-          _errorMessage = _getFailureMessage(failure);
-          _user = null;
-          _isJustLoggedIn = false;
-        },
-        (user) {
-          _user = user;
-          _errorMessage = null;
-          _isJustLoggedIn = true;
-          FirebaseMessagingService.instance.registerTokenWithBackend(
-            sl<ApiClient>(),
-          );
-          unawaited(_claimPendingReferral());
-        },
-      );
-    } catch (e) {
-      debugPrint("Facebook sign in error: $e");
-      _errorMessage = _parseErrorMessage(e.toString());
-      _user = null;
-      _isJustLoggedIn = false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   // Sign in with email and password
