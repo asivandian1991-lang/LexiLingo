@@ -90,8 +90,6 @@ dependencies:
   # Voice/Audio
   record: ^5.2.1
   web_socket_channel: ^3.0.3
-  # Last release compatible with the repo's Dart 3.10 toolchain.
-  flutter_soloud: 3.5.4
   just_audio: ^0.9.46
   audio_service: ^0.18.16        # Phase 4: Background podcast playback + lock screen
   path_provider: ^2.1.5
