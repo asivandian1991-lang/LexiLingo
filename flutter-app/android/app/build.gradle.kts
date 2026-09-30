@@ -4,7 +4,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
+    // id("com.google.gms.google-services") // enable after adding your own google-services.json
     // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -51,7 +51,7 @@ if (isReleaseTaskRequested && !hasReleaseSigning) {
 android {
     namespace = "com.lexilingo.lexilingo_app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
