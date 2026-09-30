@@ -476,37 +476,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 58,
-                      child: ElevatedButton.icon(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : () async {
-                                await authProvider.signInWithFacebook();
-                              },
-                        icon: Icon(
-                          Icons.facebook,
-                          color: AppColors.surfaceLight,
-                        ),
-                        label: Text(
-                          'auth.continueWithFacebook'.tr(),
-                          style: TextStyle(
-                            color: AppColors.surfaceLight,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0B132B),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
-                    ),
-
                     const SizedBox(height: 28),
                     Center(
                       child: Wrap(
