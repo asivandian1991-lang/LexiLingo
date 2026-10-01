@@ -148,6 +148,7 @@ class _LexiChatPageState extends State<LexiChatPage>
       return;
     }
     if (!await _consumeTutorTurn()) return;
+    if (!mounted) return;
     try {
       final provider = context.read<LexiChatProvider>();
       if (!provider.hasSession) await provider.startSession(_userId);
@@ -229,6 +230,7 @@ class _LexiChatPageState extends State<LexiChatPage>
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     if (!await _consumeTutorTurn()) return;
+    if (!mounted) return;
     _controller.clear();
 
     final provider = context.read<LexiChatProvider>();
