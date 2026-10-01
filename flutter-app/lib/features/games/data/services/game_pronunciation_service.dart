@@ -1,3 +1,5 @@
+// ignore_for_file: experimental_member_use
+
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lexilingo_app/features/voice/data/datasources/voice_remote_datasource.dart';
