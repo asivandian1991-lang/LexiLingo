@@ -26678,6 +26678,314 @@
           "intermediateFill": null
         }
       }
+    },
+    {
+      "id": "lib/features/course/presentation/screens/course_detail_screen.dart::_LessonTile::MaterialPageRoute::1",
+      "path": "lib/features/course/presentation/screens/course_detail_screen.dart",
+      "entryPoint": "imperativeRoute",
+      "symbol": "_LessonTile",
+      "callKind": "MaterialPageRoute",
+      "ordinal": 1,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried"
+    },
+    {
+      "id": "lib/features/course/presentation/screens/course_detail_screen.dart::_LessonTile::Navigator.push::1",
+      "path": "lib/features/course/presentation/screens/course_detail_screen.dart",
+      "entryPoint": "imperativeRoute",
+      "symbol": "_LessonTile",
+      "callKind": "Navigator.push",
+      "ordinal": 1,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried"
+    },
+    {
+      "id": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart::_LexiChatPageState::BoxDecoration::11",
+      "path": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_LexiChatPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 11,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart::_LexiChatPageState::BoxDecoration::12",
+      "path": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_LexiChatPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 12,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart::_LexiChatPageState::MaterialPageRoute::0",
+      "path": "lib/features/lexi_chat/presentation/pages/lexi_chat_page.dart",
+      "entryPoint": "imperativeRoute",
+      "symbol": "_LexiChatPageState",
+      "callKind": "MaterialPageRoute",
+      "ordinal": 0,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried"
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::0",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 0,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::1",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 1,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::2",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 2,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::3",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 3,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::4",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 4,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::5",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 5,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::BoxDecoration::6",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "BoxDecoration",
+      "ordinal": 6,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::DecoratedBox::0",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "surface",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "DecoratedBox",
+      "ordinal": 0,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried",
+      "colors": {
+        "light": {
+          "accent": "0xFF000000",
+          "fill": "0xFFFFFFFF",
+          "pageBackground": "0xFFFFFFFF",
+          "intermediateFill": null
+        },
+        "dark": {
+          "accent": "0xFFFFFFFF",
+          "fill": "0xFF121212",
+          "pageBackground": "0xFF121212",
+          "intermediateFill": null
+        }
+      }
+    },
+    {
+      "id": "lib/features/tutor/presentation/pages/tutor_selection_page.dart::_TutorSelectionPageState::MaterialPageRoute::0",
+      "path": "lib/features/tutor/presentation/pages/tutor_selection_page.dart",
+      "entryPoint": "imperativeRoute",
+      "symbol": "_TutorSelectionPageState",
+      "callKind": "MaterialPageRoute",
+      "ordinal": 0,
+      "line": 0,
+      "category": "eligible",
+      "group": 3,
+      "status": "inventoried"
     }
   ],
   "boundaries": [
