@@ -51,7 +51,8 @@ void main() {
     }
 
     final discovered = _discover(root);
-    expect(ids, containsAll(discovered), reason: 'inventory has uncovered source occurrences');
+    final uncovered = discovered.difference(ids).toList()..sort();
+    expect(uncovered, isEmpty, reason: 'inventory has uncovered source occurrences: ${uncovered.join(', ')}');
     expect(
       ids,
       containsAll(List.generate(
@@ -92,7 +93,7 @@ Set<String> _discover(Directory root) {
   final lib = Directory('${root.path}/lib');
   final result = <String>{};
   final patterns = <(String, String, String)>[
-    (r'''['"](/[^'"]+)['"]\s*:''', 'namedRoute', 'namedRoute'),
+    (r'''['\"](/[^'\"]+)['\"]\s*:''', 'namedRoute', 'namedRoute'),
     (r'Navigator\.pushNamed\s*\(', 'imperativeRoute', 'Navigator.pushNamed'),
     (r'Navigator\.push\s*\(', 'imperativeRoute', 'Navigator.push'),
     (r'MaterialPageRoute\s*\(', 'imperativeRoute', 'MaterialPageRoute'),
