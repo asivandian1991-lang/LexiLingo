@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lexilingo_app/core/l10n/app_localizations.dart';
 
 class LanguageFlag extends StatelessWidget {
@@ -17,18 +18,33 @@ class LanguageFlag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final path = assetPath ?? AppLocales.flagAssetOf(languageCode);
+
+    final Widget flag = path.toLowerCase().endsWith('.svg')
+        ? SvgPicture.asset(
+            path,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+          )
+        : Image.asset(
+            path,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => SizedBox(
+              width: width,
+              height: height,
+              child: const Icon(Icons.flag_outlined),
+            ),
+          );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
-      child: Image.asset(
-        assetPath ?? AppLocales.flagAssetOf(languageCode),
+      child: SizedBox(
         width: width,
         height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => SizedBox(
-          width: width,
-          height: height,
-          child: const Icon(Icons.flag_outlined),
-        ),
+        child: flag,
       ),
     );
   }
