@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lexilingo_app/core/di/service_locator.dart';
 import 'package:lexilingo_app/core/error/failures.dart';
 import 'package:lexilingo_app/core/network/api_client.dart';
@@ -74,6 +76,105 @@ class AuthProvider extends ChangeNotifier {
   bool get isCheckingAuth => _isCheckingAuth;
   bool get isJustLoggedIn => _isJustLoggedIn;
   String? get errorMessage => _errorMessage;
+
+
+  List<String> _splitDisplayName(String? displayName) {
+    final normalized = (displayName ?? '').trim();
+    if (normalized.isEmpty) return const ['', ''];
+    final parts = normalized.split(RegExp(r'\\s+'));
+    if (parts.length == 1) return [parts.first, ''];
+    return [parts.first, parts.sublist(1).join(' ')];
+  }
+
+  Future<void> _upsertFirebaseIdentity({
+    required firebase_auth.User firebaseUser,
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) async {
+    final ref = FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid);
+    final existing = await ref.get();
+
+    final data = <String, dynamic>{
+      'uid': firebaseUser.uid,
+      'firstName': firstName.trim(),
+      'lastName': lastName.trim(),
+      'email': email.trim().toLowerCase(),
+      'lastLoginAt': FieldValue.serverTimestamp(),
+    };
+
+    if (!existing.exists) {
+      data['createdAt'] = FieldValue.serverTimestamp();
+    }
+
+    await ref.set(data, SetOptions(merge: true));
+  }
+
+  Future<void> _syncEmailPasswordToFirebase({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    firebase_auth.UserCredential credential;
+
+    try {
+      credential = await firebase_auth.FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        credential = await firebase_auth.FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+      } else {
+        rethrow;
+      }
+    }
+
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) {
+      throw StateError('Firebase did not return a user.');
+    }
+
+    final displayName = '$firstName $lastName'.trim();
+    if (displayName.isNotEmpty && firebaseUser.displayName != displayName) {
+      await firebaseUser.updateDisplayName(displayName);
+    }
+
+    await _upsertFirebaseIdentity(
+      firebaseUser: firebaseUser,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+    );
+  }
+
+  Future<void> _syncGoogleToFirebase({
+    required String idToken,
+    required UserEntity backendUser,
+  }) async {
+    final googleCredential =
+        firebase_auth.GoogleAuthProvider.credential(idToken: idToken);
+    final credential = await firebase_auth.FirebaseAuth.instance
+        .signInWithCredential(googleCredential);
+
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) {
+      throw StateError('Firebase Google Sign-In did not return a user.');
+    }
+
+    final names = _splitDisplayName(
+      firebaseUser.displayName?.trim().isNotEmpty == true
+          ? firebaseUser.displayName
+          : backendUser.displayName,
+    );
+
+    await _upsertFirebaseIdentity(
+      firebaseUser: firebaseUser,
+      firstName: names[0],
+      lastName: names[1],
+      email: firebaseUser.email ?? backendUser.email,
+    );
+  }
 
   // Clear just logged in flag (call after welcome screen)
   void clearJustLoggedIn() {
@@ -196,13 +297,14 @@ class AuthProvider extends ChangeNotifier {
       SignInWithGoogleParams(idToken: idToken),
     );
 
-    result.fold(
-      (failure) {
+    await result.fold<Future<void>>(
+      (failure) async {
         _errorMessage = _getFailureMessage(failure);
         _user = null;
         _isJustLoggedIn = false;
       },
-      (user) {
+      (user) async {
+        await _syncGoogleToFirebase(idToken: idToken, backendUser: user);
         _user = user;
         _errorMessage = null;
         _isJustLoggedIn = true;
@@ -228,13 +330,20 @@ class AuthProvider extends ChangeNotifier {
 
       final result = await signInWithEmailPasswordUseCase(params);
 
-      result.fold(
-        (failure) {
+      await result.fold<Future<void>>(
+        (failure) async {
           _errorMessage = _getFailureMessage(failure);
           _user = null;
           _isJustLoggedIn = false;
         },
-        (user) {
+        (user) async {
+          final names = _splitDisplayName(user.displayName);
+          await _syncEmailPasswordToFirebase(
+            email: email,
+            password: password,
+            firstName: names[0],
+            lastName: names[1],
+          );
           _user = user;
           _errorMessage = null;
           _isJustLoggedIn = true;
@@ -369,6 +478,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
 
       await googleSignInService.signOut();
+      await firebase_auth.FirebaseAuth.instance.signOut();
       await signOutUseCase(NoParams());
       // Clear stored FCM token so it gets re-registered on next login
       await FirebaseMessagingService.instance.clearRegisteredToken();
@@ -413,6 +523,8 @@ class AuthProvider extends ChangeNotifier {
     required String username,
     required String password,
     String? displayName,
+    String? firstName,
+    String? lastName,
   }) async {
     try {
       _isLoading = true;
@@ -428,13 +540,20 @@ class AuthProvider extends ChangeNotifier {
 
       final result = await registerUseCase(params);
 
-      result.fold(
-        (failure) {
+      await result.fold<Future<void>>(
+        (failure) async {
           _errorMessage = _getFailureMessage(failure);
           _user = null;
           _isJustLoggedIn = false;
         },
-        (_) {
+        (_) async {
+          final fallbackNames = _splitDisplayName(displayName);
+          await _syncEmailPasswordToFirebase(
+            email: email,
+            password: password,
+            firstName: firstName ?? fallbackNames[0],
+            lastName: lastName ?? fallbackNames[1],
+          );
           _user = null;
           _errorMessage = null;
           _isJustLoggedIn = false;
