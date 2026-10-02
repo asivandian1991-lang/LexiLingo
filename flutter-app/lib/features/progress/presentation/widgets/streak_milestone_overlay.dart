@@ -252,7 +252,7 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
     14 => 'Two weeks! Consistency is your superpower.',
     30 => 'A whole month! You\'re unstoppable.',
     60 => 'Two months! Your dedication is inspiring.',
-    100 => '100 days! You\'re a LexiLingo legend.',
+    100 => '100 days! You\'re a Quoriv AI legend.',
     365 => 'One FULL YEAR! You\'ve achieved the impossible.',
     _ => '$days days! Keep pushing forward!',
   };
