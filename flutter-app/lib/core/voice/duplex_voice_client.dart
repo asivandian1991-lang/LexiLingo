@@ -264,7 +264,7 @@ class DuplexVoiceClient {
       channels: Channels.mono,
       format: BufferType.s16le,
     );
-    _handle = await _soloud.play(_source!);
+    _handle = _soloud.play(_source!);
   }
 
   Future<void> _drainPlayback() async {
