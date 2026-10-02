@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "189630204960",
+    "project_id": "lexilingo-bb234",
+    "storage_bucket": "lexilingo-bb234.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189630204960:android:6c074df157d49ab5014045",
+        "android_client_info": {
+          "package_name": "com.quoriv.languageai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgZAQYh0EVL7pHYWIm50GjMjWQjbKp5B0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
