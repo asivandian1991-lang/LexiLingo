@@ -31,7 +31,7 @@ keytool -genkeypair \
   -validity 10000 \
   -storepass "$STORE_PASSWORD" \
   -keypass "$KEY_PASSWORD" \
-  -dname "CN=LexiLingo, OU=Mobile, O=LexiLingo, L=HCMC, ST=HCMC, C=VN"
+  -dname "CN=Quoriv AI, OU=Mobile, O=Quoriv, L=Muscat, ST=Muscat, C=OM"
 
 echo "Keystore generated at: $KEYSTORE_PATH"
 echo "Next: create android/key.properties (or copy android/key.properties.example)."
