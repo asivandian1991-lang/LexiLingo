@@ -307,7 +307,7 @@ class _WordOfDayScreenState extends State<WordOfDayScreen>
     final text = '📖 Word of the Day: "${word.word}"\n'
         '${word.pronunciation != null ? '${word.pronunciation}\n' : ''}'
         '${word.definition}\n\n'
-        'Learn English with LexiLingo!';
+        'Learn English with Quoriv AI!';
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
