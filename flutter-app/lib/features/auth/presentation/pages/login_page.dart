@@ -183,16 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                                     : AppColors.surfaceDarkInput,
                               )
                             : const SizedBox(width: 48),
-                        Expanded(
-                          child: Center(
-                            child: Image.asset(
-                              'assets/out-app/lexilingo-logo.png',
-                              height: logoHeight,
-                              fit: BoxFit.contain,
-                              color: isDark ? Colors.white : null,
-                            ),
-                          ),
-                        ),
+                        const Expanded(child: SizedBox()),
                         const LanguageSwitcherButton(),
                       ],
                     ),
@@ -207,16 +198,15 @@ class _LoginPageState extends State<LoginPage> {
                           height: heroHeight,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0x3330E8E8), Color(0x2230E8E8)],
+                              colors: [Color(0x33137FEC), Color(0x22137FEC)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Image.network(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuC9e5sG5ITzGQOOtLmmixgmi3eqy1u2vjREx5V2LGBCdNg_bgu7OQarns0X8kgNuuuRN6bV1yWvZej9RBzXmsN0DYptA_CsuDNIuGLUOa_JlGU5R_fFBaQJZgQnWOvW6YVqMVd3tVGfLxAGrmQuwwyVsPQdEpGwB3E_bGE4Zbdw5Eya67psT55Ru81ggipsdLz1q7mHhNths64jCip1sXDvPCi_RBDeHWeza1RJmiuGVC9FfcWdVPLMLPZd2XM9pzu5ezA_FzA2O5g',
+                          child: Image.asset(
+                            'assets/out-app/banner-start.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (context, _, __) => const Center(
-                              child: Icon(Icons.language, size: 64),
-                            ),
+                          ),
+                        ),
                           ),
                         ),
                       ),
