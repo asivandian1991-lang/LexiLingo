@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
@@ -124,9 +124,14 @@ void main() async {
   // Initialize Firebase only after adding your own Firebase project config.
   if (firebaseEnabled) {
     try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // Android reads the owner's Firebase project from android/app/google-services.json.
+      await Firebase.initializeApp();
+    } else {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
     debugPrint('Firebase initialized successfully');
 
     // Crashlytics: route Flutter framework errors to Crashlytics in release
@@ -384,7 +389,7 @@ class _LexiLingoAppState extends State<LexiLingoApp>
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {
           return MaterialApp(
-            title: 'LexiLingo',
+            title: 'Quoriv AI',
             navigatorKey: AppNavigationService.navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
