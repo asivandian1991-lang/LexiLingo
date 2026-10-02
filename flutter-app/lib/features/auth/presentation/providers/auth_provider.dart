@@ -531,34 +531,63 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final params = RegisterParams(
-        email: email,
-        username: username,
+      final fallbackNames = _splitDisplayName(displayName);
+      final resolvedFirstName = (firstName ?? fallbackNames[0]).trim();
+      final resolvedLastName = (lastName ?? fallbackNames[1]).trim();
+      final normalizedEmail = email.trim().toLowerCase();
+
+      final credential = await firebase_auth.FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: normalizedEmail,
         password: password,
-        displayName: displayName,
       );
 
-      final result = await registerUseCase(params);
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw StateError('Firebase did not return a user after registration.');
+      }
 
-      await result.fold<Future<void>>(
-        (failure) async {
-          _errorMessage = _getFailureMessage(failure);
-          _user = null;
-          _isJustLoggedIn = false;
-        },
-        (_) async {
-          final fallbackNames = _splitDisplayName(displayName);
-          await _syncEmailPasswordToFirebase(
-            email: email,
-            password: password,
-            firstName: firstName ?? fallbackNames[0],
-            lastName: lastName ?? fallbackNames[1],
-          );
-          _user = null;
-          _errorMessage = null;
-          _isJustLoggedIn = false;
-        },
+      final resolvedDisplayName =
+          '$resolvedFirstName $resolvedLastName'.trim();
+      if (resolvedDisplayName.isNotEmpty) {
+        await firebaseUser.updateDisplayName(resolvedDisplayName);
+      }
+
+      await _upsertFirebaseIdentity(
+        firebaseUser: firebaseUser,
+        firstName: resolvedFirstName,
+        lastName: resolvedLastName,
+        email: normalizedEmail,
       );
+
+      if (!firebaseUser.emailVerified) {
+        await firebaseUser.sendEmailVerification();
+      }
+
+      _user = null;
+      _errorMessage = null;
+      _isJustLoggedIn = false;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'email-already-in-use':
+          _errorMessage = 'This email is already registered.';
+          break;
+        case 'invalid-email':
+          _errorMessage = 'Invalid email address.';
+          break;
+        case 'weak-password':
+          _errorMessage = 'Password is too weak.';
+          break;
+        case 'operation-not-allowed':
+          _errorMessage =
+              'Email/password registration is not enabled in Firebase.';
+          break;
+        default:
+          _errorMessage =
+              e.message ?? 'Firebase registration failed. Please try again.';
+      }
+      _user = null;
+      _isJustLoggedIn = false;
     } catch (e) {
       debugPrint("Register error: $e");
       _errorMessage = _parseErrorMessage(e.toString());
