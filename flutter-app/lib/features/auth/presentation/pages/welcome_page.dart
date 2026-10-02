@@ -84,15 +84,7 @@ class _WelcomePageState extends State<WelcomePage>
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Center(
-                            child: Image.asset(
-                              'assets/out-app/lexilingo-logo.png',
-                              height: 40,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
+                        const Expanded(child: SizedBox()),
                         const SizedBox(width: 40),
                       ],
                     ),
@@ -161,7 +153,7 @@ class _WelcomePageState extends State<WelcomePage>
                               onPressed: widget.onSkip,
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(
-                                  color: Color(0x4430E8E8),
+                                  color: Color(0x44137FEC),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
@@ -272,7 +264,7 @@ class _WelcomePageState extends State<WelcomePage>
         url,
         fit: BoxFit.cover,
         errorBuilder: (context, _, __) => const ColoredBox(
-          color: Color(0x2230E8E8),
+          color: Color(0x22137FEC),
           child: Icon(Icons.person, size: 18),
         ),
       ),

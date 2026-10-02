@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
     // height (screen height minus safe-area insets minus the on-screen
     // keyboard, when open). This replaces a hard isCompact cutoff that only
     // looked at static screen height and never reacted to the keyboard —
-    // which is exactly why the Google/Facebook buttons could end up pushed
+    // which is exactly why the Google button could end up pushed
     // below the fold while typing on shorter phones. Below `_tightHeight`
     // everything uses the tightest (compact) spacing already tuned to keep
     // the social-login row on screen; above `_roomyHeight` everything uses
@@ -149,7 +149,6 @@ class _LoginPageState extends State<LoginPage> {
         .clamp(0.0, 1.0);
     double gap(double full, double compact) =>
         compact + (full - compact) * fitT;
-    final logoHeight = gap(40, 32);
     final heroHeight = isKeyboardOpen ? 0.0 : gap(320, 185);
 
     return Scaffold(
@@ -183,16 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                                     : AppColors.surfaceDarkInput,
                               )
                             : const SizedBox(width: 48),
-                        Expanded(
-                          child: Center(
-                            child: Image.asset(
-                              'assets/out-app/lexilingo-logo.png',
-                              height: logoHeight,
-                              fit: BoxFit.contain,
-                              color: isDark ? Colors.white : null,
-                            ),
-                          ),
-                        ),
+                        const Expanded(child: SizedBox()),
                         const LanguageSwitcherButton(),
                       ],
                     ),
@@ -207,16 +197,13 @@ class _LoginPageState extends State<LoginPage> {
                           height: heroHeight,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0x3330E8E8), Color(0x2230E8E8)],
+                              colors: [Color(0x33137FEC), Color(0x22137FEC)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Image.network(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuC9e5sG5ITzGQOOtLmmixgmi3eqy1u2vjREx5V2LGBCdNg_bgu7OQarns0X8kgNuuuRN6bV1yWvZej9RBzXmsN0DYptA_CsuDNIuGLUOa_JlGU5R_fFBaQJZgQnWOvW6YVqMVd3tVGfLxAGrmQuwwyVsPQdEpGwB3E_bGE4Zbdw5Eya67psT55Ru81ggipsdLz1q7mHhNths64jCip1sXDvPCi_RBDeHWeza1RJmiuGVC9FfcWdVPLMLPZd2XM9pzu5ezA_FzA2O5g',
+                          child: Image.asset(
+                            'assets/out-app/banner-start.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (context, _, __) => const Center(
-                              child: Icon(Icons.language, size: 64),
-                            ),
                           ),
                         ),
                       ),
@@ -540,26 +527,6 @@ class _LoginPageState extends State<LoginPage> {
                                     },
                               icon: const Icon(Icons.g_mobiledata, size: 26),
                               label: const Text('Google'),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: SizedBox(
-                            height: gap(56, 44),
-                            child: OutlinedButton.icon(
-                              onPressed: authProvider.isLoading
-                                  ? null
-                                  : () async {
-                                      await authProvider.signInWithFacebook();
-                                    },
-                              icon: const Icon(Icons.facebook, size: 22),
-                              label: const Text('Facebook'),
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),

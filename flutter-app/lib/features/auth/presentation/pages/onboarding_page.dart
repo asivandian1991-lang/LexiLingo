@@ -165,6 +165,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               'onboarding.levelC1'.tr(),
                               Icons.workspace_premium_rounded,
                             ),
+                            const _OnboardingOption(
+                              'C2',
+                              'Mastery / Near-native',
+                              Icons.emoji_events_rounded,
+                            ),
                           ],
                           onSelected: (value) {
                             setState(() => _selectedLevel = value);

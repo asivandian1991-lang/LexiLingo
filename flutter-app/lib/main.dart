@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
@@ -118,11 +118,20 @@ void main() async {
   debugPrint('Backend API base URL: ${ApiConfig.baseUrl}');
   debugPrint('AI service base URL: ${ApiConfig.aiServiceUrl}');
 
-  // Initialize Firebase
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+  final firebaseEnabled =
+      (dotenv.maybeGet('FIREBASE_ENABLED') ?? 'false').toLowerCase() == 'true';
+
+  // Initialize Firebase only after adding your own Firebase project config.
+  if (firebaseEnabled) {
+    try {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // Android reads the owner's Firebase project from android/app/google-services.json.
+      await Firebase.initializeApp();
+    } else {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
     debugPrint('Firebase initialized successfully');
 
     // Crashlytics: route Flutter framework errors to Crashlytics in release
@@ -137,8 +146,11 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     // Push notification permission should not block app startup
     // so we delay it until after runApp()
-  } catch (e) {
-    debugPrint('Warning: Firebase initialization failed: $e');
+    } catch (e) {
+      debugPrint('Warning: Firebase initialization failed: $e');
+    }
+  } else {
+    debugPrint('Firebase disabled for this build.');
   }
 
   // Initialize Dependency Injection (skip database on web)
@@ -175,7 +187,7 @@ void main() async {
 
   // Wrap runApp in runZonedGuarded so uncaught async errors are forwarded to
   // Crashlytics. In release mode only — dev keeps the default red-screen behavior.
-  if (!kIsWeb && kReleaseMode) {
+  if (!kIsWeb && kReleaseMode && firebaseEnabled) {
     runZonedGuarded(
       () => runApp(
         EasyLocalization(
@@ -189,8 +201,8 @@ void main() async {
             Locale('es'),
           ],
           path: 'assets/i18n',
-          fallbackLocale: const Locale('vi'),
-          startLocale: const Locale('vi'),
+          fallbackLocale: const Locale('en'),
+          startLocale: const Locale('en'),
           useOnlyLangCode: true,
           child: const LexiLingoApp(),
         ),
@@ -211,8 +223,8 @@ void main() async {
           Locale('es'),
         ],
         path: 'assets/i18n',
-        fallbackLocale: const Locale('vi'),
-        startLocale: const Locale('vi'),
+        fallbackLocale: const Locale('en'),
+        startLocale: const Locale('en'),
         useOnlyLangCode: true,
         child: const LexiLingoApp(),
       ),
@@ -221,11 +233,13 @@ void main() async {
 
   // Initialize Firebase Messaging and Deep Links after UI starts rendering
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    try {
-      await FirebaseMessagingService.instance.initialize();
-      debugPrint('Firebase Messaging initialized successfully');
-    } catch (e) {
-      debugPrint('Warning: Firebase Messaging initialization failed: $e');
+    if (firebaseEnabled) {
+      try {
+        await FirebaseMessagingService.instance.initialize();
+        debugPrint('Firebase Messaging initialized successfully');
+      } catch (e) {
+        debugPrint('Warning: Firebase Messaging initialization failed: $e');
+      }
     }
     try {
       await DeepLinkService.instance.init();
@@ -375,12 +389,11 @@ class _LexiLingoAppState extends State<LexiLingoApp>
       child: Consumer<SettingsProvider>(
         builder: (context, settings, child) {
           return MaterialApp(
-            title: 'LexiLingo',
+            title: 'Quoriv AI',
             navigatorKey: AppNavigationService.navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: settings.themeMode,
+            themeMode: ThemeMode.light,
             themeAnimationDuration: Duration.zero,
             builder: (context, child) {
               return AnnotatedRegion<SystemUiOverlayStyle>(

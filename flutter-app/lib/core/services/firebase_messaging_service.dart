@@ -206,10 +206,10 @@ class FirebaseMessagingService {
         return android.id;
       } else if (Platform.isIOS) {
         final ios = await info.iosInfo;
-        return ios.identifierForVendor ?? _generateOrFetchUuid();
+        return ios.identifierForVendor ?? await _generateOrFetchUuid();
       }
     } catch (_) {}
-    return _generateOrFetchUuid();
+    return await _generateOrFetchUuid();
   }
 
   Future<String> _generateOrFetchUuid() async {

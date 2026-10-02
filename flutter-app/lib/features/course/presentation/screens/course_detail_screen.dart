@@ -8,6 +8,8 @@ import 'package:lexilingo_app/features/course/domain/entities/course_detail_enti
 import 'package:lexilingo_app/features/learning/presentation/screens/learning_session_screen.dart';
 import 'package:lexilingo_app/features/learning/presentation/screens/learning_roadmap_screen.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
+import 'package:lexilingo_app/features/premium/presentation/screens/paywall_screen.dart';
+import 'package:lexilingo_app/core/services/purchases_service.dart';
 
 /// Course Detail Screen
 /// Shows course roadmap with units and lessons
@@ -30,12 +32,20 @@ class CourseDetailScreen extends StatefulWidget {
 }
 
 class _CourseDetailScreenState extends State<CourseDetailScreen> {
+  bool _isPremium = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CourseProvider>().loadCourseDetail(widget.courseId);
     });
+    _loadPremiumStatus();
+  }
+
+  Future<void> _loadPremiumStatus() async {
+    final premium = await PurchasesService.instance.isPremium;
+    if (mounted) setState(() => _isPremium = premium);
   }
 
   @override
@@ -269,6 +279,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     unit: unit,
                     unitNumber: index + 1,
                     courseId: course.id,
+                    isPremium: _isPremium,
                   );
                 }, childCount: course.units.length),
               ),
@@ -454,11 +465,13 @@ class _UnitCard extends StatelessWidget {
   final UnitWithLessonsEntity unit;
   final int unitNumber;
   final String courseId;
+  final bool isPremium;
 
   const _UnitCard({
     required this.unit,
     required this.unitNumber,
     required this.courseId,
+    required this.isPremium,
   });
 
   @override
@@ -488,8 +501,13 @@ class _UnitCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               )
             : null,
-        children: unit.lessons.map((lesson) {
-          return _LessonTile(lesson: lesson, courseId: courseId);
+        children: unit.lessons.asMap().entries.map((entry) {
+          return _LessonTile(
+            lesson: entry.value,
+            courseId: courseId,
+            isPremium: isPremium,
+            isFreePreview: unitNumber == 1 && entry.key == 0,
+          );
         }).toList(),
       ),
     );
@@ -511,12 +529,20 @@ class _UnitCard extends StatelessWidget {
 class _LessonTile extends StatelessWidget {
   final LessonInRoadmapEntity lesson;
   final String courseId;
+  final bool isPremium;
+  final bool isFreePreview;
 
-  const _LessonTile({required this.lesson, required this.courseId});
+  const _LessonTile({
+    required this.lesson,
+    required this.courseId,
+    required this.isPremium,
+    required this.isFreePreview,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isLocked = lesson.isLocked ?? false;
+    final isLocked =
+        (lesson.isLocked ?? false) || (!isPremium && !isFreePreview);
     final isCompleted = lesson.isCompleted ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -552,19 +578,24 @@ class _LessonTile extends StatelessWidget {
             ),
         ],
       ),
-      onTap: isLocked
-          ? null
-          : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LearningSessionScreen(
-                    lessonId: lesson.id,
-                    courseId: courseId,
-                  ),
-                ),
-              );
-            },
+      onTap: () {
+        if (isLocked) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PaywallScreen()),
+          );
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LearningSessionScreen(
+              lessonId: lesson.id,
+              courseId: courseId,
+            ),
+          ),
+        );
+      },
     );
   }
 

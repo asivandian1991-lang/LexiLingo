@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Setup iOS Development Environment
-# LexiLingo App
+# Quoriv AI App
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║        🍎 iOS Development Environment Setup               ║"

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "LexiLingo",
+    "name": "Quoriv AI",
     "tagline": "Learn English Smartly"
   },
   "common": {
@@ -177,7 +177,7 @@
       "footer": "Built from your reviews, courses, skills, and challenges.",
       "viewAll": "View plan",
       "heroTitle": "Your study route is ready",
-      "heroSubtitle": "Finish the next small task, then let LexiLingo guide you into the right practice.",
+      "heroSubtitle": "Finish the next small task, then let Quoriv AI guide you into the right practice.",
       "completedSummary": "{completed}/{total} tasks complete",
       "startNext": "Start next task",
       "sequenceTitle": "Today's sequence",
@@ -654,7 +654,7 @@
     "invite_friends_subtitle": "Get 50 gems for each friend who joins",
     "invite_title": "Invite Friends, Earn Gems!",
     "invite_desc": "Share your code. Both you and your friend get 50 gems when they join.",
-    "invite_message": "🎓 Join me on LexiLingo and learn English together! Use my referral code for 50 free gems.",
+    "invite_message": "🎓 Join me on Quoriv AI and learn English together! Use my referral code for 50 free gems.",
     "share_invite": "Share Invite Link",
     "code_copied": "Code copied!",
     "referral_count": "{count} friend(s) joined via your code"
@@ -759,7 +759,7 @@
     "refreshNearby": "Refresh nearby"
   },
   "onboarding": {
-    "welcome": "Welcome to LexiLingo!",
+    "welcome": "Welcome to Quoriv AI!",
     "step1Title": "Learn vocabulary effectively",
     "step1Desc": "Use smart flashcards with spaced repetition system",
     "step2Title": "Practice pronunciation with AI",
@@ -892,7 +892,7 @@
     "recommended": "Focus skills",
     "recommendedTitle": "Recommended practice",
     "recommendedSubtitle": "Based on your weakest proficiency scores.",
-    "fallbackSubtitle": "Practice a balanced mix while LexiLingo learns your strengths.",
+    "fallbackSubtitle": "Practice a balanced mix while Quoriv AI learns your strengths.",
     "allSkillsTitle": "All skill labs",
     "allSkillsSubtitle": "Jump into a focused practice mode using existing lessons, games, audio, and Lexi.",
     "focus": "Focus",
@@ -996,7 +996,7 @@
   },
   "premium": {
     "title": "Go Premium",
-    "subtitle": "Unlock the full LexiLingo experience",
+    "subtitle": "Unlock the full Quoriv AI experience",
     "feature_unlimited": "Unlimited lessons & exercises",
     "feature_ai": "AI tutor with no daily limits",
     "feature_offline": "Download lessons for offline learning",
@@ -1004,7 +1004,7 @@
     "monthly": "Monthly — {price}/month",
     "annual": "Annual — {price}/year",
     "restore": "Restore Purchases",
-    "success": "Premium unlocked! Enjoy LexiLingo Pro.",
+    "success": "Premium unlocked! Enjoy Quoriv AI Pro.",
     "restored": "Purchases restored successfully!",
     "no_purchases": "No previous purchases found.",
     "unavailable": "Subscription not available in your region."

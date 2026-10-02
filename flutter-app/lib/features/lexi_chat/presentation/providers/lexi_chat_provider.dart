@@ -13,6 +13,7 @@ import 'package:lexilingo_app/features/lexi_chat/domain/entities/lexi_message.da
 import 'package:lexilingo_app/features/lexi_chat/domain/entities/lexi_stream_event.dart';
 import 'package:lexilingo_app/features/lexi_chat/domain/entities/lexi_session.dart';
 import 'package:lexilingo_app/features/lexi_chat/domain/repositories/lexi_chat_repository.dart';
+import 'package:lexilingo_app/features/tutor/domain/ai_tutor.dart';
 
 const _tag = 'LexiChatProvider';
 
@@ -47,6 +48,7 @@ class LexiChatProvider extends ChangeNotifier {
   Future<String> transcribeAudio(Uint8List bytes) async {
     final result = await _aiClient.postMultipart(
       '/stt/transcribe',
+      fields: {'language': _tutor.voiceLocale.split('-').first},
       fileField: 'audio',
       fileBytes: bytes,
       filename: 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
@@ -74,6 +76,7 @@ class LexiChatProvider extends ChangeNotifier {
   double _ttsSpeed = 1.0;
   String _learnerLevel = 'B1';
   String _nativeLanguage = 'vi';
+  AiTutor _tutor = AiTutor.defaultTutor;
   Timer? _typingStageTimer;
   DateTime? _responseStateStartedAt;
   int _requestSequence = 0;
@@ -126,6 +129,15 @@ class LexiChatProvider extends ChangeNotifier {
 
   String get learnerLevel => _learnerLevel;
   String get nativeLanguage => _nativeLanguage;
+  AiTutor get tutor => _tutor;
+  String get tutorName => _tutor.name;
+  String get targetLanguage => _tutor.targetLanguage;
+
+  String get _tutorContext =>
+      '${_tutor.systemPrompt} Target language: ${_tutor.targetLanguage}. '
+      'Tutor accent: ${_tutor.accent}. Teaching style: ${_tutor.teachingStyle}. '
+      'The learner level is $_learnerLevel. Keep feedback concise, encouraging, '
+      'and focused on speaking, pronunciation, grammar and vocabulary.';
 
   @override
   void notifyListeners() {
@@ -161,10 +173,10 @@ class LexiChatProvider extends ChangeNotifier {
           id: 'greeting',
           role: 'assistant',
           content:
-              "Squawk! Hey there, adventurer! I'm Lexi, your English buddy. "
-              "Let's go on a learning adventure together!\n\n"
-              "You can type or speak — I'll help you practice English. "
-              "What would you like to talk about?",
+              "${_tutor.name} here! I'm your ${_tutor.targetLanguage} tutor. "
+              "You can type or speak — I'll adapt to your level, correct important "
+              "mistakes and help you sound more natural.\n\n"
+              "What would you like to practice today?",
           timestamp: DateTime.now(),
         ),
       );
@@ -417,6 +429,7 @@ class LexiChatProvider extends ChangeNotifier {
         enableTts: _ttsEnabled,
         learnerLevel: _learnerLevel,
         nativeLanguage: _nativeLanguage,
+        storyContext: _tutorContext,
         idempotencyKey: requestId,
       );
 
@@ -543,6 +556,7 @@ class LexiChatProvider extends ChangeNotifier {
         'enable_tts': _ttsEnabled,
         'learner_level': _learnerLevel,
         'native_language': _nativeLanguage,
+        'story_context': _tutorContext,
       },
     );
   }
@@ -629,6 +643,7 @@ class LexiChatProvider extends ChangeNotifier {
         enableTts: _ttsEnabled,
         learnerLevel: _learnerLevel,
         nativeLanguage: _nativeLanguage,
+        storyContext: _tutorContext,
       )) {
         switch (event) {
           case LexiStreamThinking():
@@ -838,6 +853,7 @@ class LexiChatProvider extends ChangeNotifier {
         enableTts: _ttsEnabled,
         learnerLevel: _learnerLevel,
         nativeLanguage: _nativeLanguage,
+        storyContext: _tutorContext,
       );
 
       _messages.add(response);
@@ -981,6 +997,12 @@ class LexiChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setTutor(AiTutor tutor) {
+    if (_tutor.id == tutor.id) return;
+    _tutor = tutor;
+    notifyListeners();
+  }
+
   // ── Cleanup ───────────────────────────────────────────────────────────────
   void clearError() {
     _error = null;
@@ -1002,7 +1024,7 @@ class LexiChatProvider extends ChangeNotifier {
     final mm = now.minute.toString().padLeft(2, '0');
     final dd = now.day.toString().padLeft(2, '0');
     final mo = now.month.toString().padLeft(2, '0');
-    return 'Lexi $hh:$mm $dd/$mo';
+    return '${_tutor.name} $hh:$mm $dd/$mo';
   }
 
   void _upsertSessionSummary(LexiSessionSummary summary) {

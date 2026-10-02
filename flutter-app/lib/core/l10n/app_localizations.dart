@@ -27,18 +27,37 @@ class AppLocales {
   static const Locale fallback = Locale('en');
 
   static const Map<String, Map<String, String>> metadata = {
-    'vi': {'flagCode': 'vn', 'name': 'Tiếng Việt', 'nameEn': 'Vietnamese'},
-    'en': {'flagCode': 'us', 'name': 'English', 'nameEn': 'English'},
-    'ja': {'flagCode': 'jp', 'name': '日本語', 'nameEn': 'Japanese'},
-    'ko': {'flagCode': 'kr', 'name': '한국어', 'nameEn': 'Korean'},
-    'zh': {'flagCode': 'cn', 'name': '中文', 'nameEn': 'Chinese'},
-    'fr': {'flagCode': 'fr', 'name': 'Français', 'nameEn': 'French'},
-    'es': {'flagCode': 'es', 'name': 'Español', 'nameEn': 'Spanish'},
+    'vi': {'flagCode': 'vn', 'flagExt': 'png', 'name': 'Tiếng Việt', 'nameEn': 'Vietnamese'},
+    'en': {'flagCode': 'us', 'flagExt': 'png', 'name': 'English', 'nameEn': 'English'},
+    'ja': {'flagCode': 'jp', 'flagExt': 'png', 'name': '日本語', 'nameEn': 'Japanese'},
+    'ko': {'flagCode': 'kr', 'flagExt': 'png', 'name': '한국어', 'nameEn': 'Korean'},
+    'zh': {'flagCode': 'cn', 'flagExt': 'png', 'name': '中文', 'nameEn': 'Chinese'},
+    'fr': {'flagCode': 'fr', 'flagExt': 'png', 'name': 'Français', 'nameEn': 'French'},
+    'es': {'flagCode': 'es', 'flagExt': 'png', 'name': 'Español', 'nameEn': 'Spanish'},
+    'de': {'flagCode': 'de', 'flagExt': 'svg', 'name': 'Deutsch', 'nameEn': 'German'},
+    'it': {'flagCode': 'it', 'flagExt': 'svg', 'name': 'Italiano', 'nameEn': 'Italian'},
+    'pt': {'flagCode': 'pt', 'flagExt': 'svg', 'name': 'Português', 'nameEn': 'Portuguese'},
+    'ar': {'flagCode': 'ar', 'flagExt': 'svg', 'name': 'العربية', 'nameEn': 'Arabic'},
+    'fa': {'flagCode': 'ir', 'flagExt': 'svg', 'name': 'فارسی', 'nameEn': 'Persian'},
+    'tr': {'flagCode': 'tr', 'flagExt': 'svg', 'name': 'Türkçe', 'nameEn': 'Turkish'},
+    'ru': {'flagCode': 'ru', 'flagExt': 'svg', 'name': 'Русский', 'nameEn': 'Russian'},
+    'hi': {'flagCode': 'in', 'flagExt': 'svg', 'name': 'हिन्दी', 'nameEn': 'Hindi'},
+    'nl': {'flagCode': 'nl', 'flagExt': 'svg', 'name': 'Nederlands', 'nameEn': 'Dutch'},
+    'pl': {'flagCode': 'pl', 'flagExt': 'svg', 'name': 'Polski', 'nameEn': 'Polish'},
+    'sv': {'flagCode': 'se', 'flagExt': 'svg', 'name': 'Svenska', 'nameEn': 'Swedish'},
+    'no': {'flagCode': 'no', 'flagExt': 'svg', 'name': 'Norsk', 'nameEn': 'Norwegian'},
+    'da': {'flagCode': 'dk', 'flagExt': 'svg', 'name': 'Dansk', 'nameEn': 'Danish'},
+    'fi': {'flagCode': 'fi', 'flagExt': 'svg', 'name': 'Suomi', 'nameEn': 'Finnish'},
+    'el': {'flagCode': 'gr', 'flagExt': 'svg', 'name': 'Ελληνικά', 'nameEn': 'Greek'},
+    'id': {'flagCode': 'id', 'flagExt': 'svg', 'name': 'Bahasa Indonesia', 'nameEn': 'Indonesian'},
   };
 
-  static String flagCodeOf(String code) => metadata[code]?['flagCode'] ?? 'un';
-  static String flagAssetOf(String code) =>
-      'assets/flags/${flagCodeOf(code)}.png';
+  static String flagCodeOf(String code) => metadata[code]?['flagCode'] ?? 'us';
+  static String flagAssetOf(String code) {
+    final flagCode = flagCodeOf(code);
+    final ext = metadata[code]?['flagExt'] ?? 'png';
+    return 'assets/flags/$flagCode.$ext';
+  }
   static String nameOf(String code) => metadata[code]?['name'] ?? code;
   static String nameEnOf(String code) => metadata[code]?['nameEn'] ?? code;
 }

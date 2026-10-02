@@ -69,6 +69,14 @@ def _personalization_hint(state: Dict[str, Any]) -> str:
             who = f"is learning for {goal}" if goal else f"is into {interest}"
         hint += f"The learner {who} — use examples from that when it fits naturally.\n"
 
+    tutor_context = str(learner_profile.get("tutor_context") or "").strip()
+    if tutor_context:
+        hint += (
+            "\n--- Selected AI Tutor ---\n"
+            f"{tutor_context}\n"
+            "Follow this tutor persona and target language instead of the default Lexi persona.\n"
+        )
+
     recap = str(learner_profile.get("session_recap") or "").strip()
     if recap:
         hint += (
@@ -87,6 +95,16 @@ def _build_base_system_prompt(state: Dict[str, Any], level: str, difficulty: str
         return (
             f"{topic_prompt}\n\n"
             "--- TraceCAG Turn Guidance ---\n"
+            f"The learner's current CEFR level is: {level}\n"
+            f"Difficulty setting for this turn: {difficulty}\n"
+            f"{personalization}"
+        )
+
+    if str((state.get("learner_profile") or {}).get("tutor_context") or "").strip():
+        return (
+            "You are a professional AI language tutor. Follow the selected tutor persona below.\n"
+            "Keep responses concise (2-4 sentences), conversational, supportive and level-appropriate.\n"
+            "Prioritize speaking practice, natural corrections, pronunciation cues and useful vocabulary.\n"
             f"The learner's current CEFR level is: {level}\n"
             f"Difficulty setting for this turn: {difficulty}\n"
             f"{personalization}"
@@ -216,6 +234,55 @@ async def stream_llm_tokens(
     groq_admitted = False
     groq_model_used = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
+    primary_base_url = os.getenv("PRIMARY_LLM_BASE_URL", "").rstrip("/")
+    primary_api_key = os.getenv("PRIMARY_LLM_API_KEY", "")
+    primary_model = os.getenv("PRIMARY_LLM_MODEL", "")
+    primary_provider = os.getenv("PRIMARY_LLM_PROVIDER", "openai-compatible")
+
+    async def _try_primary_compatible() -> "AsyncGenerator[str, None]":
+        if not primary_base_url or not primary_api_key or not primary_model:
+            return
+        client = _get_httpx_client("primary")
+        url = f"{primary_base_url}/chat/completions"
+        try:
+            async with client.stream(
+                "POST",
+                url,
+                headers={
+                    "Authorization": f"Bearer {primary_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": primary_model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.7,
+                    "stream": True,
+                },
+                timeout=30.0,
+            ) as resp:
+                if resp.status_code != 200:
+                    logger.warning(
+                        "[stream_llm_tokens] primary provider status %d",
+                        resp.status_code,
+                    )
+                    return
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        obj = json.loads(data)
+                        delta = obj.get("choices", [{}])[0].get("delta", {}).get("content") or ""
+                        if delta:
+                            yield delta
+                    except Exception as exc:
+                        logger.debug("[primary_provider] ignored malformed SSE chunk: %s", exc)
+        except Exception as exc:
+            logger.warning("[stream_llm_tokens] primary provider stream error: %s", exc)
+
     async def _try_groq() -> "AsyncGenerator[str, None]":
         nonlocal groq_admitted
         from api.core.groq_key_pool import record_groq_key_usage, release_groq_key, try_acquire_groq_key
@@ -332,7 +399,24 @@ async def stream_llm_tokens(
         except Exception as exc:
             logger.warning("[stream_llm_tokens] Gemini stream error: %s", exc)
 
-    # Try Groq first; if it yields nothing, fall back to Gemini
+    # Try a configured OpenAI-compatible provider first (Nara/NVIDIA NIM/etc.),
+    # then preserve the existing Groq → Gemini fallback chain.
+    if primary_base_url and primary_api_key and primary_model:
+        primary_yielded = False
+        primary_stream = _try_primary_compatible()
+        try:
+            async for token in primary_stream:
+                primary_yielded = True
+                yield token
+        finally:
+            await primary_stream.aclose()
+        if primary_yielded:
+            if provider_info is not None:
+                provider_info["provider"] = primary_provider
+                provider_info["model"] = primary_model
+            return
+
+    # Try Groq next; if it yields nothing, fall back to Gemini
     got_tokens = False
     groq_stream = _try_groq()
     try:

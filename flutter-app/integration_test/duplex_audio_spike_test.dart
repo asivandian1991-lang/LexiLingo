@@ -76,7 +76,7 @@ void main() {
           }
         },
       );
-      handle = await soloud.play(source);
+      handle = soloud.play(source);
       final normalizer = VoiceAudioNormalizer();
       final chunker = PcmFrameChunker();
       stopwatch.start();
