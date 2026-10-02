@@ -207,8 +207,6 @@ class _LoginPageState extends State<LoginPage> {
                             fit: BoxFit.cover,
                           ),
                         ),
-                          ),
-                        ),
                       ),
                     ],
 
