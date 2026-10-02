@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $flutterApp = Split-Path -Parent $PSScriptRoot
 $repoRoot = Split-Path -Parent $flutterApp
 
-Write-Host "LexiLingo Android runner" -ForegroundColor Cyan
+Write-Host "Quoriv AI Android runner" -ForegroundColor Cyan
 Write-Host "Repo: $repoRoot"
 
 # Keep Pub cache on the same drive as the project to avoid Kotlin cross-drive
