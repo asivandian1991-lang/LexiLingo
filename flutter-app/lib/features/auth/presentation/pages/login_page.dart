@@ -149,7 +149,6 @@ class _LoginPageState extends State<LoginPage> {
         .clamp(0.0, 1.0);
     double gap(double full, double compact) =>
         compact + (full - compact) * fitT;
-    final logoHeight = gap(40, 32);
     final heroHeight = isKeyboardOpen ? 0.0 : gap(320, 185);
 
     return Scaffold(
