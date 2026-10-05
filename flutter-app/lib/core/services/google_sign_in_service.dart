@@ -157,73 +157,51 @@ class GoogleSignInService {
         normalized.contains('popup');
   }
 
-  /// Mobile: use google_sign_in package to get the Google id_token.
+  /// Mobile: sign in with Google and immediately authenticate with Firebase.
+  /// The returned token is a Firebase ID token and is only used as a success marker
+  /// by the AuthProvider; the Firebase session is already established here.
   Future<String?> _signInMobile() async {
     try {
-      // Clear only the local session before showing the account picker.
-      // disconnect() revokes OAuth access over the network and can fail before
-      // signIn() starts, leaving users unable to log in again.
       try {
         await _googleSignIn.signOut();
       } on PlatformException catch (e) {
-        logWarn(
-          _tag,
-          'Could not clear previous Google session: ${e.code} ${e.message}',
-        );
+        logWarn(_tag, 'Could not clear previous Google session: ${e.code} ${e.message}');
       }
 
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account == null) {
-        logWarn(_tag, 'Google Sign In cancelled by user');
         _lastError = 'cancelled';
         return null;
       }
 
-      logDebug(_tag, 'Google account obtained: ${account.email}');
-
       final GoogleSignInAuthentication auth = await account.authentication;
       if (auth.idToken == null) {
-        logError(_tag, 'Failed to get ID token from Google (mobile)');
-        _lastError =
-            'Unable to get Google ID token. Check GOOGLE_SERVER_CLIENT_ID and Android SHA-1/SHA-256 config.';
+        _lastError = 'Unable to get Google ID token. Check Android OAuth SHA configuration.';
         return null;
       }
 
-      logInfo(_tag, 'Google Sign In successful (mobile)');
-      return auth.idToken;
+      final credential = GoogleAuthProvider.credential(
+        idToken: auth.idToken,
+        accessToken: auth.accessToken,
+      );
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final firebaseToken = await userCredential.user?.getIdToken(true);
+      if (firebaseToken == null) {
+        _lastError = 'Firebase did not return an ID token after Google Sign-In.';
+        return null;
+      }
+      logInfo(_tag, 'Google Sign In successful (mobile + Firebase)');
+      return firebaseToken;
     } on PlatformException catch (e) {
       _lastError = _mapMobileGoogleError(e);
-      logError(
-        _tag,
-        'Google mobile sign-in PlatformException: ${e.code} ${e.message}',
-      );
+      logError(_tag, 'Google mobile sign-in PlatformException: ${e.code} ${e.message}');
+      return null;
+    } on FirebaseAuthException catch (e) {
+      _lastError = e.message ?? 'Firebase Google Sign-In failed.';
+      logError(_tag, 'Firebase Google sign-in failed: ${e.code} ${e.message}');
       return null;
     }
   }
-
-  String _mapMobileGoogleError(PlatformException e) {
-    final code = e.code.toLowerCase();
-    final message = (e.message ?? '').toLowerCase();
-    final details = (e.details ?? '').toString().toLowerCase();
-    final combined = '$code $message $details';
-
-    if (combined.contains('10') ||
-        combined.contains('developer_error') ||
-        combined.contains('12500')) {
-      return 'Google Sign-In Android config mismatch (SHA/client ID). Update SHA-1/SHA-256 in Firebase and refresh google-services.json.';
-    }
-
-    if (combined.contains('network')) {
-      return 'Network error during Google Sign-In. Please check your connection.';
-    }
-
-    if (combined.contains('cancel')) {
-      return 'cancelled';
-    }
-
-    return e.message ?? 'Google Sign-In failed on mobile.';
-  }
-
   /// Sign out from Google without revoking the user's OAuth grant.
   Future<void> signOut() async {
     try {
