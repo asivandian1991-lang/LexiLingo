@@ -86,6 +86,43 @@ class AuthProvider extends ChangeNotifier {
     return [parts.first, parts.sublist(1).join(' ')];
   }
 
+  UserEntity _userEntityFromFirebase(firebase_auth.User firebaseUser) {
+    final email = (firebaseUser.email ?? '').trim().toLowerCase();
+    final displayName = (firebaseUser.displayName ?? '').trim();
+    final username = email.contains('@') ? email.split('@').first : firebaseUser.uid;
+
+    return UserEntity(
+      id: firebaseUser.uid,
+      email: email,
+      username: username,
+      displayName: displayName.isEmpty ? username : displayName,
+      provider: firebaseUser.providerData.isNotEmpty
+          ? firebaseUser.providerData.first.providerId
+          : 'firebase',
+      isVerified: firebaseUser.emailVerified,
+      isOnboardingCompleted: false,
+      nativeLanguage: 'en',
+      targetLanguage: 'en',
+      createdAt:
+          firebaseUser.metadata.creationTime ?? DateTime.now(),
+      updatedAt: firebaseUser.metadata.lastSignInTime,
+    );
+  }
+
+  Future<void> _adoptFirebaseUser(firebase_auth.User firebaseUser) async {
+    final names = _splitDisplayName(firebaseUser.displayName);
+    await _upsertFirebaseIdentity(
+      firebaseUser: firebaseUser,
+      firstName: names[0],
+      lastName: names[1],
+      email: firebaseUser.email ?? '',
+    );
+    _user = _userEntityFromFirebase(firebaseUser);
+    _errorMessage = null;
+    _isJustLoggedIn = true;
+    await UserScopeService.setActiveUserId(firebaseUser.uid);
+  }
+
   Future<void> _upsertFirebaseIdentity({
     required firebase_auth.User firebaseUser,
     required String firstName,
@@ -193,92 +230,89 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Check current user on app start
+  // Check current user on app start.
+  // Firebase Auth is the source of truth for app authentication.
   Future<void> _checkCurrentUser() async {
     try {
       _isCheckingAuth = true;
       notifyListeners();
 
-      // Web redirect flow: if we just came back from Google, finish backend
-      // sign-in before checking stored session.
-      final pendingGoogleIdToken = await googleSignInService
-          .consumePendingWebRedirectIdToken();
-      if (pendingGoogleIdToken != null) {
-        await _authenticateWithGoogleIdToken(pendingGoogleIdToken);
-        return;
-      }
-
-      // Fast-path: if there are no local tokens, skip network call completely.
-      final hasStoredSession = await authRepository.isAuthenticated();
-      if (!hasStoredSession) {
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
         _user = null;
         _errorMessage = null;
-        UserScopeService.clearActiveUserId();
+        await UserScopeService.clearActiveUserId();
         return;
       }
 
-      final result = await getCurrentUserUseCase(NoParams()).timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => Left(AuthFailure('Auth check timed out')),
+      await firebaseUser.reload();
+      final refreshedUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (refreshedUser == null) {
+        _user = null;
+        _errorMessage = null;
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
+
+      final isPasswordUser = refreshedUser.providerData.any(
+        (provider) => provider.providerId == 'password',
       );
-      result.fold(
-        (failure) {
-          // Don't show error for AuthFailure (401) - user just not logged in
-          if (failure is AuthFailure || failure is UnauthorizedFailure) {
-            _errorMessage = null; // Silent - normal state when not logged in
-          } else {
-            _errorMessage = _getFailureMessage(failure);
-          }
-          _user = null;
-          UserScopeService.clearActiveUserId();
-        },
-        (user) {
-          _user = user;
-          _errorMessage = null;
-        },
-      );
+      if (isPasswordUser && !refreshedUser.emailVerified) {
+        _user = null;
+        _errorMessage = null;
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
+
+      await _adoptFirebaseUser(refreshedUser);
+      _isJustLoggedIn = false;
     } catch (e) {
-      debugPrint("Check current user error: $e");
-      // Don't show error for auth check failures - user just not logged in
+      debugPrint("Firebase auth check error: $e");
       _errorMessage = null;
       _user = null;
-      UserScopeService.clearActiveUserId();
+      await UserScopeService.clearActiveUserId();
     } finally {
       _isCheckingAuth = false;
       notifyListeners();
     }
   }
 
-  // Sign in with Google
+  // Sign in with Google through Firebase Auth.
   Future<void> signInWithGoogle() async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      // Get real ID token from Google Sign-In
       final idToken = await googleSignInService.signIn();
       if (idToken == GoogleSignInService.redirectInProgressMarker) {
-        // Redirect flow has started, browser will navigate away.
-        _errorMessage = null;
-        _isLoading = false;
-        notifyListeners();
         return;
       }
 
       if (idToken == null) {
         final signInError = googleSignInService.lastError?.toLowerCase();
-        if (signInError == null || signInError.contains('cancelled')) {
-          _errorMessage = 'Google sign in was cancelled';
-        } else {
-          _errorMessage = _parseErrorMessage(googleSignInService.lastError!);
-        }
-        _isLoading = false;
-        notifyListeners();
+        _errorMessage =
+            signInError == null || signInError.contains('cancelled')
+                ? 'Google sign in was cancelled'
+                : _parseErrorMessage(googleSignInService.lastError!);
         return;
       }
 
-      await _authenticateWithGoogleIdToken(idToken);
+      final googleCredential =
+          firebase_auth.GoogleAuthProvider.credential(idToken: idToken);
+      final credential = await firebase_auth.FirebaseAuth.instance
+          .signInWithCredential(googleCredential);
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw StateError('Firebase Google Sign-In did not return a user.');
+      }
+
+      await _adoptFirebaseUser(firebaseUser);
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      debugPrint("Firebase Google sign in error: $e");
+      _errorMessage = e.message ?? 'Google Sign-In failed.';
+      _user = null;
+      _isJustLoggedIn = false;
     } catch (e) {
       debugPrint("Google sign in error: $e");
       _errorMessage = _parseErrorMessage(e.toString());
@@ -290,69 +324,59 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _authenticateWithGoogleIdToken(String idToken) async {
-    debugPrint('Google ID token obtained (length: ${idToken.length})');
-
-    final result = await signInWithGoogleUseCase(
-      SignInWithGoogleParams(idToken: idToken),
-    );
-
-    await result.fold<Future<void>>(
-      (failure) async {
-        _errorMessage = _getFailureMessage(failure);
-        _user = null;
-        _isJustLoggedIn = false;
-      },
-      (user) async {
-        await _syncGoogleToFirebase(idToken: idToken, backendUser: user);
-        _user = user;
-        _errorMessage = null;
-        _isJustLoggedIn = true;
-        FirebaseMessagingService.instance.registerTokenWithBackend(
-          sl<ApiClient>(),
-        );
-        unawaited(_claimPendingReferral());
-      },
-    );
-  }
-
-  // Sign in with email and password
+  // Sign in with email and password through Firebase Auth.
   Future<void> signInWithEmailPassword(String email, String password) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final params = SignInWithEmailPasswordParams(
-        email: email,
+      final credential = await firebase_auth.FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
         password: password,
       );
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw StateError('Firebase did not return a user.');
+      }
 
-      final result = await signInWithEmailPasswordUseCase(params);
+      await firebaseUser.reload();
+      final refreshedUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (refreshedUser == null) {
+        throw StateError('Firebase session could not be refreshed.');
+      }
 
-      await result.fold<Future<void>>(
-        (failure) async {
-          _errorMessage = _getFailureMessage(failure);
-          _user = null;
-          _isJustLoggedIn = false;
-        },
-        (user) async {
-          final names = _splitDisplayName(user.displayName);
-          await _syncEmailPasswordToFirebase(
-            email: email,
-            password: password,
-            firstName: names[0],
-            lastName: names[1],
-          );
-          _user = user;
-          _errorMessage = null;
-          _isJustLoggedIn = true;
-          FirebaseMessagingService.instance.registerTokenWithBackend(
-            sl<ApiClient>(),
-          );
-          unawaited(_claimPendingReferral());
-        },
-      );
+      if (!refreshedUser.emailVerified) {
+        _user = null;
+        _isJustLoggedIn = false;
+        _errorMessage =
+            'Email is not verified. Please check your inbox or resend the verification email.';
+        return;
+      }
+
+      await _adoptFirebaseUser(refreshedUser);
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'invalid-credential':
+        case 'wrong-password':
+        case 'user-not-found':
+          _errorMessage = 'Incorrect email or password.';
+          break;
+        case 'invalid-email':
+          _errorMessage = 'Invalid email address.';
+          break;
+        case 'user-disabled':
+          _errorMessage = 'This account has been disabled.';
+          break;
+        case 'too-many-requests':
+          _errorMessage = 'Too many attempts. Please try again later.';
+          break;
+        default:
+          _errorMessage = e.message ?? 'Sign in failed. Please try again.';
+      }
+      _user = null;
+      _isJustLoggedIn = false;
     } catch (e) {
       debugPrint("Email sign in error: $e");
       _errorMessage = _parseErrorMessage(e.toString());
@@ -364,26 +388,20 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Request password reset link/email.
+  /// Send a Firebase password-reset email.
   Future<bool> requestPasswordReset(String email) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final result = await authRepository.requestPasswordReset(email);
-
-      final succeeded = result.fold<bool>(
-        (failure) {
-          _errorMessage = _getFailureMessage(failure);
-          return false;
-        },
-        (_) {
-          _errorMessage = null;
-          return true;
-        },
+      await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email.trim().toLowerCase(),
       );
-      return succeeded;
+      return true;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      _errorMessage = e.message ?? 'Could not send password reset email.';
+      return false;
     } catch (e) {
       _errorMessage = _parseErrorMessage(e.toString());
       return false;
@@ -393,26 +411,50 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Resend verification email.
+  /// Resend the Firebase verification email for the currently signed-in user.
   Future<bool> resendVerificationEmail(String email) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final result = await authRepository.resendVerificationEmail(email);
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        _errorMessage =
+            'Please sign in with this email first, then resend the verification email.';
+        return false;
+      }
 
-      final succeeded = result.fold<bool>(
-        (failure) {
-          _errorMessage = _getFailureMessage(failure);
-          return false;
-        },
-        (_) {
-          _errorMessage = null;
-          return true;
-        },
-      );
-      return succeeded;
+      if ((firebaseUser.email ?? '').trim().toLowerCase() !=
+          email.trim().toLowerCase()) {
+        _errorMessage =
+            'The signed-in account does not match this email address.';
+        return false;
+      }
+
+      await firebaseUser.reload();
+      final refreshedUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (refreshedUser == null) {
+        _errorMessage = 'Your Firebase session expired. Please sign in again.';
+        return false;
+      }
+
+      if (refreshedUser.emailVerified) {
+        _errorMessage = null;
+        return true;
+      }
+
+      await refreshedUser.sendEmailVerification();
+      _errorMessage = null;
+      return true;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      if (e.code == 'too-many-requests') {
+        _errorMessage =
+            'Too many verification emails were requested. Please wait and try again.';
+      } else {
+        _errorMessage = e.message ?? 'Could not resend verification email.';
+      }
+      return false;
     } catch (e) {
       _errorMessage = _parseErrorMessage(e.toString());
       return false;
