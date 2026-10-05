@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/tutor_catalog.dart';
 import '../../domain/ai_tutor.dart';
 import '../../../lexi_chat/presentation/pages/lexi_chat_page.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class TutorSelectionPage extends StatefulWidget {
   const TutorSelectionPage({super.key});
@@ -30,11 +32,22 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
   }
 
   Future<void> _continue() async {
+    final targetLanguage =
+        context.read<AuthProvider>().currentUser?.targetLanguage ?? 'en';
+    final availableTutors = TutorCatalog.forTargetLanguage(targetLanguage);
+    final effectiveSelection = availableTutors.any(
+      (tutor) => tutor.id == _selected.id,
+    )
+        ? _selected
+        : availableTutors.first;
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_preferenceKey, _selected.id);
+    await prefs.setString(_preferenceKey, effectiveSelection.id);
     if (!mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => LexiChatPage(tutor: _selected)),
+      MaterialPageRoute(
+        builder: (_) => LexiChatPage(tutor: effectiveSelection),
+      ),
     );
   }
 
@@ -42,6 +55,22 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
   Widget build(BuildContext context) {
     const navy = Color(0xFF17233A);
     const blue = Color(0xFF3E9CF4);
+
+    final targetLanguage =
+        context.watch<AuthProvider>().currentUser?.targetLanguage ?? 'en';
+    final availableTutors = TutorCatalog.forTargetLanguage(targetLanguage);
+    final effectiveSelected = availableTutors.any(
+      (tutor) => tutor.id == _selected.id,
+    )
+        ? _selected
+        : availableTutors.first;
+
+    if (effectiveSelected.id != _selected.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selected = effectiveSelected);
+      });
+    }
 
     return Scaffold(
       backgroundColor: navy,
@@ -87,7 +116,7 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: SvgPicture.asset(
-                      _selected.avatarAsset,
+                      effectiveSelected.avatarAsset,
                       height: 260,
                       fit: BoxFit.contain,
                     ),
@@ -96,7 +125,7 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
                     left: 30,
                     bottom: 18,
                     child: Text(
-                      _selected.name,
+                      effectiveSelected.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -116,7 +145,7 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Text(
-                          _selected.accent,
+                          effectiveSelected.accent,
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ),
@@ -135,10 +164,10 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
                 ),
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
-                  itemCount: TutorCatalog.tutors.length,
+                  itemCount: availableTutors.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, index) {
-                    final tutor = TutorCatalog.tutors[index];
+                    final tutor = availableTutors[index];
                     final selected = tutor.id == _selected.id;
                     return InkWell(
                       borderRadius: BorderRadius.circular(26),
@@ -249,7 +278,7 @@ class _TutorSelectionPageState extends State<TutorSelectionPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               ),
               child: Text(
-                'Continue with ${_selected.name}',
+                'Continue with ${effectiveSelected.name}',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
