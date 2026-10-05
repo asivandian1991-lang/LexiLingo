@@ -9,7 +9,6 @@ import 'package:lexilingo_app/core/services/firebase_messaging_service.dart';
 import 'package:lexilingo_app/core/services/purchases_service.dart';
 import 'package:lexilingo_app/core/services/session_expired_service.dart';
 import 'package:lexilingo_app/core/services/user_scope_service.dart';
-import 'package:lexilingo_app/core/usecase/usecase.dart';
 import 'package:lexilingo_app/features/auth/domain/entities/user_entity.dart';
 import 'package:lexilingo_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:lexilingo_app/features/auth/domain/usecases/get_current_user_usecase.dart';
