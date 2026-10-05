@@ -161,7 +161,7 @@ void main() async {
   await di.sl<NotificationService>().ensureInitialized();
 
   // Run startup tasks (health check, seeding). Keep non-blocking for first frame.
-  if (!kIsWeb) {
+  if (!kIsWeb && ApiConfig.enableLegacyBackendStartup) {
     final coordinator = StartupCoordinator(
       tasks: [
         StartupTask(
@@ -275,7 +275,7 @@ class _LexiLingoAppState extends State<LexiLingoApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (!kIsWeb) {
+    if (!kIsWeb && ApiConfig.enableLegacyBackendStartup) {
       _syncQueueRunner = SyncQueueLifecycleRunner(
         apiClient: di.sl<ApiClient>(),
       );
