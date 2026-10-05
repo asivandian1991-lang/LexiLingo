@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lexilingo_app/core/di/service_locator.dart';
 import 'package:lexilingo_app/core/error/failures.dart';
-import 'package:lexilingo_app/core/network/api_client.dart';
 import 'package:lexilingo_app/core/services/google_sign_in_service.dart';
 import 'package:lexilingo_app/core/services/firebase_messaging_service.dart';
 import 'package:lexilingo_app/core/services/purchases_service.dart';
@@ -152,16 +150,41 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> refreshCurrentUser() async {
-    final result = await getCurrentUserUseCase(NoParams());
-    result.fold((failure) => _errorMessage = _getFailureMessage(failure), (
-      user,
-    ) {
-      _user = user;
-      _errorMessage = null;
-    });
-    notifyListeners();
+    try {
+      final auth = firebase_auth.FirebaseAuth.instance;
+      final current = auth.currentUser;
+      if (current == null) {
+        _user = null;
+        _errorMessage = null;
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
+      await current.reload();
+      final refreshed = auth.currentUser;
+      if (refreshed == null) {
+        _user = null;
+        _errorMessage = null;
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
+      final isPasswordUser = refreshed.providerData.any(
+        (provider) => provider.providerId == 'password',
+      );
+      if (isPasswordUser && !refreshed.emailVerified) {
+        _user = null;
+        _errorMessage = 'Email is not verified.';
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
+      await _adoptFirebaseUser(refreshed);
+      _isJustLoggedIn = false;
+    } catch (e) {
+      debugPrint('Refresh Firebase user error: $e');
+      _errorMessage = _parseErrorMessage(e.toString());
+    } finally {
+      notifyListeners();
+    }
   }
-
   // Check current user on app start.
   // Firebase Auth is the source of truth for app authentication.
   Future<void> _checkCurrentUser() async {
@@ -432,7 +455,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Sign out
+  // Sign out from Firebase and Google.
   Future<void> signOut() async {
     try {
       _isLoading = true;
@@ -441,44 +464,55 @@ class AuthProvider extends ChangeNotifier {
 
       await googleSignInService.signOut();
       await firebase_auth.FirebaseAuth.instance.signOut();
-      await signOutUseCase(NoParams());
-      // Clear stored FCM token so it gets re-registered on next login
       await FirebaseMessagingService.instance.clearRegisteredToken();
       await PurchasesService.instance.logout();
+      await UserScopeService.clearActiveUserId();
       _user = null;
+      _isJustLoggedIn = false;
     } catch (e) {
-      debugPrint("Sign out error: $e");
+      debugPrint('Sign out error: $e');
       _errorMessage = _parseErrorMessage(e.toString());
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
-
-  // Permanently delete current user account (GDPR hard delete)
+  // Permanently delete the current Firebase account and identity document.
   Future<void> deleteAccount() async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final apiClient = sl<ApiClient>();
-      await apiClient.delete('/users/me/permanent');
+      final auth = firebase_auth.FirebaseAuth.instance;
+      final firebaseUser = auth.currentUser;
+      if (firebaseUser == null) {
+        _user = null;
+        await UserScopeService.clearActiveUserId();
+        return;
+      }
 
+      final uid = firebaseUser.uid;
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
       await googleSignInService.signOut();
-      await signOutUseCase(NoParams());
+      await firebaseUser.delete();
       await FirebaseMessagingService.instance.clearRegisteredToken();
+      await PurchasesService.instance.logout();
+      await UserScopeService.clearActiveUserId();
       _user = null;
-    } catch (e) {
-      debugPrint("Delete account error: $e");
-      _errorMessage = _parseErrorMessage(e.toString());
+      _isJustLoggedIn = false;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _errorMessage = 'Please sign in again before deleting your account.';
+      } else {
+        _errorMessage = e.message ?? 'Could not delete your account.';
+      }
       rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
-
   // Register new user with Firebase Auth.
   Future<void> register({
     required String email,
@@ -527,10 +561,9 @@ class AuthProvider extends ChangeNotifier {
           debugPrint('Firebase verification email sent successfully to $normalizedEmail');
         } on firebase_auth.FirebaseAuthException catch (e) {
           debugPrint('Firebase verification email send failed after account creation: ${e.code} ${e.message}');
-          _errorMessage = 'Your account was created, but the verification email could not be sent. Use Resend verification email on the next screen.';
+          _errorMessage = null;
           _user = null;
           _isJustLoggedIn = false;
-          return;
         }
       }
 
@@ -573,34 +606,38 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  // Update user profile (display name, avatar)
+  // Update Firebase display name and identity document.
   Future<void> updateProfile({String? displayName, String? avatarUrl}) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final result = await authRepository.updateProfile(
-        displayName: displayName,
-        avatarUrl: avatarUrl,
-      );
+      final auth = firebase_auth.FirebaseAuth.instance;
+      final firebaseUser = auth.currentUser;
+      if (firebaseUser == null) {
+        _errorMessage = 'You are not signed in.';
+        return;
+      }
 
-      result.fold(
-        (failure) {
-          _errorMessage = _getFailureMessage(failure);
-          throw Exception(_errorMessage);
-        },
-        (updatedUser) {
-          _user = updatedUser;
-          _errorMessage = null;
-        },
-      );
+      if (displayName != null && displayName.trim().isNotEmpty) {
+        await firebaseUser.updateDisplayName(displayName.trim());
+      }
+      if (avatarUrl != null) {
+        await firebaseUser.updatePhotoURL(avatarUrl.trim().isEmpty ? null : avatarUrl.trim());
+      }
+      await firebaseUser.reload();
+      final refreshed = auth.currentUser;
+      if (refreshed != null) {
+        await _adoptFirebaseUser(refreshed);
+      }
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      _errorMessage = e.message ?? 'Could not update your profile.';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
-
   /// Submit onboarding payload once at the end of onboarding flow.
   ///
   /// [displayName] and [nativeLanguage] are optional overrides from the
