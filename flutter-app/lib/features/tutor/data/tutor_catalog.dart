@@ -100,10 +100,54 @@ class TutorCatalog {
     ),
   ];
 
+  static List<AiTutor> forTargetLanguage(String? language) {
+    final normalized = _normalizeLanguage(language);
+
+    final matching = tutors.where((tutor) {
+      final tutorLanguage = _normalizeLanguage(tutor.targetLanguage);
+      return tutorLanguage == normalized || tutorLanguage == 'adaptive';
+    }).toList(growable: false);
+
+    if (matching.isNotEmpty) {
+      return matching;
+    }
+
+    return tutors
+        .where(
+          (tutor) =>
+              _normalizeLanguage(tutor.targetLanguage) == 'english' ||
+              _normalizeLanguage(tutor.targetLanguage) == 'adaptive',
+        )
+        .toList(growable: false);
+  }
+
   static AiTutor byId(String? id) {
     return tutors.firstWhere(
       (tutor) => tutor.id == id,
       orElse: () => AiTutor.defaultTutor,
     );
+  }
+
+  static String _normalizeLanguage(String? language) {
+    final value = (language ?? '').trim().toLowerCase();
+    switch (value) {
+      case 'en':
+      case 'en-us':
+      case 'en-gb':
+      case 'english':
+        return 'english';
+      case 'es':
+      case 'es-es':
+      case 'spanish':
+        return 'spanish';
+      case 'ja':
+      case 'ja-jp':
+      case 'japanese':
+        return 'japanese';
+      case 'adaptive':
+        return 'adaptive';
+      default:
+        return value.isEmpty ? 'english' : value;
+    }
   }
 }
