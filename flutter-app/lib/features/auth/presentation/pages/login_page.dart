@@ -149,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
         .clamp(0.0, 1.0);
     double gap(double full, double compact) =>
         compact + (full - compact) * fitT;
-    final heroHeight = isKeyboardOpen ? 0.0 : gap(320, 185);
+    final heroHeight = isKeyboardOpen ? 0.0 : gap(270, 170);
 
     return Scaffold(
       key: ValueKey<String>('login-page-$localeCode'),
@@ -201,9 +201,13 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Image.asset(
-                            'assets/out-app/banner-start.png',
-                            fit: BoxFit.cover,
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Image.asset(
+                              'assets/out-app/banner-start.png',
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
+                            ),
                           ),
                         ),
                       ),
