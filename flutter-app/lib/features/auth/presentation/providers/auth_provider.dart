@@ -996,3 +996,230 @@ class AuthProvider extends ChangeNotifier {
 
       final auth =
           firebase_auth.FirebaseAuth.instance;
+      final firebaseUser =
+          auth.currentUser;
+
+      if (firebaseUser == null) {
+        _errorMessage =
+            'You are not signed in.';
+
+        return;
+      }
+
+      if (displayName != null &&
+          displayName.trim().isNotEmpty) {
+        await firebaseUser
+            .updateDisplayName(
+          displayName.trim(),
+        );
+      }
+
+      if (avatarUrl != null) {
+        await firebaseUser
+            .updatePhotoURL(
+          avatarUrl.trim().isEmpty
+              ? null
+              : avatarUrl.trim(),
+        );
+      }
+
+      await firebaseUser.reload();
+
+      final refreshed =
+          auth.currentUser;
+
+      if (refreshed != null) {
+        await _adoptFirebaseUser(
+          refreshed,
+        );
+      }
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      _errorMessage =
+          e.message ??
+          'Could not update your profile.';
+    } finally {
+      _isLoading = false;
+
+      notifyListeners();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Onboarding
+  // ---------------------------------------------------------------------------
+
+  Future<void> submitOnboarding(
+    Map<String, dynamic> payload, {
+    String? displayName,
+    String? nativeLanguage,
+  }) async {
+    final selectedLevel =
+        (payload['level'] as String?)
+            ?.toUpperCase();
+
+    final result =
+        await authRepository
+            .updateProfile(
+      displayName: displayName,
+      level: selectedLevel,
+      goal:
+          payload['goal']
+              as String?,
+      interest:
+          payload['interest']
+              as String?,
+      nativeLanguage:
+          nativeLanguage ?? 'vi',
+      targetLanguage:
+          (payload['target_language']
+                  as String?) ??
+              'en',
+      isOnboardingCompleted:
+          true,
+    );
+
+    result.fold(
+      (_) {
+        //
+        // Keep onboarding non-blocking
+        // when legacy backend is unavailable.
+        //
+      },
+      (updatedUser) {
+        _user =
+            updatedUser;
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Clear Error
+  // ---------------------------------------------------------------------------
+
+  void clearError() {
+    _errorMessage = null;
+
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Parse errors
+  // ---------------------------------------------------------------------------
+
+  String _parseErrorMessage(
+    String error,
+  ) {
+    final normalized =
+        error.toLowerCase();
+
+    if (normalized.contains(
+          'timeoutexception',
+        ) ||
+        normalized.contains(
+          'timed out',
+        )) {
+      return 'Server is not responding in time. Please try again in a moment.';
+    }
+
+    if (normalized.contains(
+      '/users/me failed',
+    )) {
+      return 'Sign in succeeded, but we could not load your profile. Please try again.';
+    }
+
+    if (normalized.contains(
+      'internal server error',
+    )) {
+      return 'Server error occurred. Please try again later.';
+    }
+
+    if (normalized.contains(
+      'google_server_client_id',
+    )) {
+      return 'Google sign-in config is missing. Please contact support.';
+    }
+
+    if (normalized.contains(
+          'google sign-in android config mismatch',
+        ) ||
+        normalized.contains(
+          'developer_error',
+        ) ||
+        normalized.contains(
+          'sha-1',
+        ) ||
+        normalized.contains(
+          'sha/client id',
+        )) {
+      return 'Google Sign-In on Android is not configured correctly (SHA-1/SHA-256 or client ID). Please contact support.';
+    }
+
+    if (normalized.contains(
+      'account-exists-with-different-credential',
+    )) {
+      return 'This email is already linked to another provider. Please sign in with the previous method first.';
+    }
+
+    if (normalized.contains(
+          'access-control-allow-origin',
+        ) ||
+        normalized.contains(
+          'blocked by cors',
+        )) {
+      return 'Login is blocked by CORS configuration. Please try again in a moment.';
+    }
+
+    if (normalized.contains(
+      'network',
+    )) {
+      return 'Network error. Please check your internet connection.';
+    }
+
+    if (normalized.contains(
+          'cancelled',
+        ) ||
+        normalized.contains(
+          'canceled',
+        )) {
+      return 'Sign in was cancelled.';
+    }
+
+    if (normalized.contains(
+      'user-not-found',
+    )) {
+      return 'No account found with this email.';
+    }
+
+    if (normalized.contains(
+      'wrong-password',
+    )) {
+      return 'Incorrect password.';
+    }
+
+    if (normalized.contains(
+      'too-many-requests',
+    )) {
+      return 'Too many attempts. Please try again later.';
+    }
+
+    if (normalized.contains(
+      'email',
+    )) {
+      return 'Invalid email address.';
+    }
+
+    if (normalized.contains(
+      'password',
+    )) {
+      return 'Invalid password.';
+    }
+
+    return 'An error occurred. Please try again.';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Failure messages
+  // ---------------------------------------------------------------------------
+
+  
+}
