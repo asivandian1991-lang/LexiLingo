@@ -1,4 +1,6 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lexilingo_app/core/di/core_di.dart';
+import 'package:lexilingo_app/core/services/ai_gateway_client.dart';
 import 'package:lexilingo_app/core/di/service_locator.dart';
 import 'package:lexilingo_app/features/lexi_chat/data/datasources/lexi_chat_data_source.dart';
 import 'package:lexilingo_app/features/lexi_chat/data/repositories/lexi_chat_repository_impl.dart';
@@ -7,9 +9,32 @@ import 'package:lexilingo_app/features/lexi_chat/presentation/providers/lexi_cha
 
 /// Register all Lexi Chat dependencies.
 void registerLexiChatModule() {
-  // DataSource → uses AiApiClient (port 8001)
+  final naraApiKey =
+      (dotenv.isInitialized ? dotenv.env['NARA_API_KEY'] : null) ?? '';
+  final nvidiaApiKey =
+      (dotenv.isInitialized ? dotenv.env['NVIDIA_API_KEY'] : null) ?? '';
+  final naraModel =
+      (dotenv.isInitialized ? dotenv.env['NARA_MODEL'] : null) ?? 'auto/bynara';
+  final nvidiaModel =
+      (dotenv.isInitialized ? dotenv.env['NVIDIA_MODEL'] : null) ??
+      'openai/gpt-oss-20b';
+
+  sl.registerLazySingleton<AiGatewayClient>(
+    () => AiGatewayClient(
+      naraApiKey: naraApiKey,
+      nvidiaApiKey: nvidiaApiKey,
+      naraModel: naraModel,
+      nvidiaModel: nvidiaModel,
+    ),
+  );
+
+  // Keep the legacy AI backend for sessions/history, but use the external
+  // gateway as a direct fallback for tutor chat when the backend is offline.
   sl.registerLazySingleton<LexiChatDataSource>(
-    () => LexiChatDataSource(apiClient: sl<AiApiClient>()),
+    () => LexiChatDataSource(
+      apiClient: sl<AiApiClient>(),
+      aiGatewayClient: sl<AiGatewayClient>(),
+    ),
   );
 
   // Repository
