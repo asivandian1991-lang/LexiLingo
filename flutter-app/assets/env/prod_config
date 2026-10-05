@@ -10,3 +10,9 @@ DEBUG_MODE=false
 
 # Enable only after adding your own Firebase project files.
 FIREBASE_ENABLED=true
+
+# AI tutor gateway (keep keys empty in source; fill locally for development)
+NARA_API_KEY=
+NARA_MODEL=auto/bynara
+NVIDIA_API_KEY=
+NVIDIA_MODEL=openai/gpt-oss-20b
