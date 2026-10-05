@@ -9,12 +9,17 @@ import 'package:http/http.dart' as http;
 class AiGatewayClient {
   final String naraApiKey;
   final String nvidiaApiKey;
+  final String naraBaseUrl;
+  final String nvidiaBaseUrl;
   final String naraModel;
   final String nvidiaModel;
 
   const AiGatewayClient({
     required this.naraApiKey,
     required this.nvidiaApiKey,
+    this.naraBaseUrl = 'https://router.bynara.id/v1/chat/completions',
+    this.nvidiaBaseUrl =
+        'https://integrate.api.nvidia.com/v1/chat/completions',
     this.naraModel = 'auto/bynara',
     this.nvidiaModel = 'openai/gpt-oss-20b',
   });
@@ -32,7 +37,7 @@ class AiGatewayClient {
     if (naraApiKey.trim().isNotEmpty) {
       try {
         return await _callOpenAiCompatible(
-          endpoint: 'https://router.bynara.id/v1/chat/completions',
+          endpoint: naraBaseUrl,
           apiKey: naraApiKey,
           model: naraModel,
           userMessage: userMessage,
@@ -47,7 +52,7 @@ class AiGatewayClient {
     if (nvidiaApiKey.trim().isNotEmpty) {
       try {
         return await _callOpenAiCompatible(
-          endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+          endpoint: nvidiaBaseUrl,
           apiKey: nvidiaApiKey,
           model: nvidiaModel,
           userMessage: userMessage,
