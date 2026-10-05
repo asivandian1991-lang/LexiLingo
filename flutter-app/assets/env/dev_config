@@ -13,6 +13,8 @@ FIREBASE_ENABLED=true
 
 # AI tutor gateway (keep keys empty in source; fill locally for development)
 NARA_API_KEY=
+NARA_BASE_URL=https://router.bynara.id/v1/chat/completions
 NARA_MODEL=auto/bynara
 NVIDIA_API_KEY=
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1/chat/completions
 NVIDIA_MODEL=openai/gpt-oss-20b
