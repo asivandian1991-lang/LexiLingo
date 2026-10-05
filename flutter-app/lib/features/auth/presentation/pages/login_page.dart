@@ -7,7 +7,6 @@ import 'package:lexilingo_app/core/widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
-import 'email_verification_pending_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
@@ -57,14 +56,6 @@ class _LoginPageState extends State<LoginPage> {
     return normalized.contains('incorrect email or password') ||
         normalized.contains('invalid email or password') ||
         normalized.contains('auth_invalid');
-  }
-
-  bool _isEmailNotVerifiedMessage(String? message) {
-    if (message == null) return false;
-    final normalized = message.toLowerCase();
-    return normalized.contains('not verified') ||
-        normalized.contains('chưa được xác thực') ||
-        normalized.contains('chưa xác thực');
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -130,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
     // height (screen height minus safe-area insets minus the on-screen
     // keyboard, when open). This replaces a hard isCompact cutoff that only
     // looked at static screen height and never reacted to the keyboard —
-    // which is exactly why the Google/Facebook buttons could end up pushed
+    // which is exactly why the Google button could end up pushed
     // below the fold while typing on shorter phones. Below `_tightHeight`
     // everything uses the tightest (compact) spacing already tuned to keep
     // the social-login row on screen; above `_roomyHeight` everything uses
@@ -149,8 +140,7 @@ class _LoginPageState extends State<LoginPage> {
         .clamp(0.0, 1.0);
     double gap(double full, double compact) =>
         compact + (full - compact) * fitT;
-    final logoHeight = gap(40, 32);
-    final heroHeight = isKeyboardOpen ? 0.0 : gap(320, 185);
+    final heroHeight = isKeyboardOpen ? 0.0 : gap(270, 170);
 
     return Scaffold(
       key: ValueKey<String>('login-page-$localeCode'),
@@ -183,16 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                                     : AppColors.surfaceDarkInput,
                               )
                             : const SizedBox(width: 48),
-                        Expanded(
-                          child: Center(
-                            child: Image.asset(
-                              'assets/out-app/lexilingo-logo.png',
-                              height: logoHeight,
-                              fit: BoxFit.contain,
-                              color: isDark ? Colors.white : null,
-                            ),
-                          ),
-                        ),
+                        const Expanded(child: SizedBox()),
                         const LanguageSwitcherButton(),
                       ],
                     ),
@@ -207,15 +188,16 @@ class _LoginPageState extends State<LoginPage> {
                           height: heroHeight,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0x3330E8E8), Color(0x2230E8E8)],
+                              colors: [Color(0x33137FEC), Color(0x22137FEC)],
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Image.network(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuC9e5sG5ITzGQOOtLmmixgmi3eqy1u2vjREx5V2LGBCdNg_bgu7OQarns0X8kgNuuuRN6bV1yWvZej9RBzXmsN0DYptA_CsuDNIuGLUOa_JlGU5R_fFBaQJZgQnWOvW6YVqMVd3tVGfLxAGrmQuwwyVsPQdEpGwB3E_bGE4Zbdw5Eya67psT55Ru81ggipsdLz1q7mHhNths64jCip1sXDvPCi_RBDeHWeza1RJmiuGVC9FfcWdVPLMLPZd2XM9pzu5ezA_FzA2O5g',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, _, __) => const Center(
-                              child: Icon(Icons.language, size: 64),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Image.asset(
+                              'assets/out-app/banner-start.png',
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
                             ),
                           ),
                         ),
@@ -375,7 +357,6 @@ class _LoginPageState extends State<LoginPage> {
                                   final messenger = ScaffoldMessenger.of(
                                     context,
                                   );
-                                  final navigator = Navigator.of(context);
                                   await authProvider.signInWithEmailPassword(
                                     _emailController.text.trim(),
                                     _passwordController.text,
@@ -386,19 +367,6 @@ class _LoginPageState extends State<LoginPage> {
                                   if (authProvider.isAuthenticated) {
                                     await _persistCredentialPreference();
                                     setState(() => _failedAttempts = 0);
-                                  } else if (_isEmailNotVerifiedMessage(
-                                    authProvider.errorMessage,
-                                  )) {
-                                    if (!mounted) return;
-                                    final email = _emailController.text.trim();
-                                    navigator.push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            EmailVerificationPendingPage(
-                                              email: email,
-                                            ),
-                                      ),
-                                    );
                                   } else if (_isInvalidCredentialMessage(
                                     authProvider.errorMessage,
                                   )) {
@@ -540,26 +508,6 @@ class _LoginPageState extends State<LoginPage> {
                                     },
                               icon: const Icon(Icons.g_mobiledata, size: 26),
                               label: const Text('Google'),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: SizedBox(
-                            height: gap(56, 44),
-                            child: OutlinedButton.icon(
-                              onPressed: authProvider.isLoading
-                                  ? null
-                                  : () async {
-                                      await authProvider.signInWithFacebook();
-                                    },
-                              icon: const Icon(Icons.facebook, size: 22),
-                              label: const Text('Facebook'),
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),

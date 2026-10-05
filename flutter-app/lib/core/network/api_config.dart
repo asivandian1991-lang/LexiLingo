@@ -23,6 +23,11 @@ class ApiConfig {
   static bool get enableDuplexVoice =>
       _readEnv('VOICE_DUPLEX_ENABLED')?.trim().toLowerCase() == 'true';
 
+  /// Legacy backend startup work (health ping, background replay, server
+  /// entitlement sync). Keep disabled while Firebase + direct AI are primary.
+  static bool get enableLegacyBackendStartup =>
+      _readEnv('ENABLE_LEGACY_BACKEND_STARTUP')?.trim().toLowerCase() == 'true';
+
   /// Starter rewards require backend routes and a database migration.
   /// Production must opt in only after those dependencies are deployed.
   static bool get enableStarterReward {
@@ -30,7 +35,9 @@ class ApiConfig {
     if (configured != null && configured.isNotEmpty) {
       return configured == 'true' || configured == '1' || configured == 'yes';
     }
-    return !isProd;
+    // The legacy rewards endpoint currently depends on the old backend.
+    // Keep it off unless explicitly enabled so app startup never waits on it.
+    return false;
   }
 
   // ── Backend URL ─────────────────────────────────────────────────────────────

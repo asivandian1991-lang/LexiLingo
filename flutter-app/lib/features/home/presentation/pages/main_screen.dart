@@ -8,7 +8,7 @@ import 'home_page.dart';
 import '../../../course/presentation/screens/course_list_screen.dart';
 import '../../../chat/presentation/pages/story_selection_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
-import '../../../lexi_chat/presentation/pages/lexi_chat_page.dart';
+import '../../../tutor/presentation/pages/tutor_selection_page.dart';
 import 'package:lexilingo_app/core/network/api_config.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
 import '../../../gamification/presentation/providers/gamification_provider.dart';
@@ -39,7 +39,7 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         return const CourseListScreen();
       case 2:
-        return const LexiChatPage();
+        return const TutorSelectionPage();
       case 3:
         return const StorySelectionPage();
       case 4:
@@ -58,14 +58,16 @@ class _MainScreenState extends State<MainScreen> {
     _currentIndex = widget.initialIndex.clamp(0, _pageCount - 1);
     // Only build the initial page; all other pages are deferred.
     _getPage(_currentIndex);
-    if (_currentIndex == 2) {
-      _lexiWarmedUp = true;
-      _warmupAiModels();
+    if (ApiConfig.enableLegacyBackendStartup) {
+      if (_currentIndex == 2) {
+        _lexiWarmedUp = true;
+        _warmupAiModels();
+      }
+      _triggerPreWarming();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showPendingStarterReward();
+      });
     }
-    _triggerPreWarming();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showPendingStarterReward();
-    });
   }
 
   Future<void> _showPendingStarterReward() async {
@@ -156,7 +158,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _selectTab(int index) {
-    if (index == 2 && !_lexiWarmedUp) {
+    if (ApiConfig.enableLegacyBackendStartup &&
+        index == 2 &&
+        !_lexiWarmedUp) {
       _lexiWarmedUp = true;
       _warmupAiModels();
     }
@@ -202,7 +206,7 @@ class _MainScreenState extends State<MainScreen> {
             NavigationRailDestination(
               icon: const Icon(Icons.smart_toy_outlined),
               selectedIcon: const Icon(Icons.smart_toy),
-              label: Text('home.navLexi'.tr()),
+              label: const Text('AI Tutor'),
             ),
             NavigationRailDestination(
               icon: const Icon(Icons.chat_bubble_outline),
@@ -263,7 +267,7 @@ class _MainScreenState extends State<MainScreen> {
             BottomNavigationBarItem(
               icon: const Icon(Icons.smart_toy_outlined),
               activeIcon: const Icon(Icons.smart_toy),
-              label: 'home.navLexi'.tr(),
+              label: 'AI Tutor',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.chat_bubble_outline),

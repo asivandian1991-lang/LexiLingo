@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import 'login_page.dart';
-import 'email_verification_pending_page.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -19,7 +18,8 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -30,7 +30,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -153,26 +154,53 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 30),
 
                     Text(
-                      'auth.fullName'.tr(),
+                      'First name',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 10),
                     TextFormField(
-                      controller: _fullNameController,
+                      controller: _firstNameController,
                       textInputAction: TextInputAction.next,
                       decoration: _inputDecoration(
                         context: context,
-                        hint: 'auth.enterYourName'.tr(),
+                        hint: 'Enter your first name',
                         icon: Icons.person_outline,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'auth.pleaseEnterName'.tr();
+                          return 'Please enter your first name';
                         }
                         if (value.trim().length < 2) {
-                          return 'auth.nameMinLength'.tr();
+                          return 'First name is too short';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+                    Text(
+                      'Last name',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _lastNameController,
+                      textInputAction: TextInputAction.next,
+                      decoration: _inputDecoration(
+                        context: context,
+                        hint: 'Enter your last name',
+                        icon: Icons.person_outline,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your last name';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Last name is too short';
                         }
                         return null;
                       },
@@ -379,26 +407,30 @@ class _RegisterPageState extends State<RegisterPage> {
                                 }
 
                                 final nav = Navigator.of(context);
+                                final firstName =
+                                    _firstNameController.text.trim();
+                                final lastName =
+                                    _lastNameController.text.trim();
+                                final fullName = '$firstName $lastName'.trim();
+
                                 await authProvider.register(
                                   email: _emailController.text.trim(),
-                                  username: _deriveUsername(
-                                    _fullNameController.text,
-                                  ),
+                                  username: _deriveUsername(fullName),
                                   password: _passwordController.text,
-                                  displayName: _fullNameController.text.trim(),
+                                  displayName: fullName,
+                                  firstName: firstName,
+                                  lastName: lastName,
                                 );
 
-                                // If registration succeeded, navigate to email verification page.
+                                // AuthProvider logs the user in immediately after
+                                // successful Firebase registration. AuthWrapper
+                                // will continue to onboarding/main automatically.
                                 if (authProvider.errorMessage == null &&
-                                    mounted) {
-                                  nav.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          EmailVerificationPendingPage(
-                                            email: _emailController.text.trim(),
-                                          ),
-                                    ),
-                                  );
+                                    mounted &&
+                                    authProvider.isAuthenticated) {
+                                  if (nav.canPop()) {
+                                    nav.pop();
+                                  }
                                 }
                               },
                         style: ElevatedButton.styleFrom(
@@ -472,37 +504,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(28),
                           ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 58,
-                      child: ElevatedButton.icon(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : () async {
-                                await authProvider.signInWithFacebook();
-                              },
-                        icon: Icon(
-                          Icons.facebook,
-                          color: AppColors.surfaceLight,
-                        ),
-                        label: Text(
-                          'auth.continueWithFacebook'.tr(),
-                          style: TextStyle(
-                            color: AppColors.surfaceLight,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0B132B),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          elevation: 0,
                         ),
                       ),
                     ),

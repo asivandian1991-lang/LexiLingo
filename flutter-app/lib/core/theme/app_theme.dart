@@ -147,18 +147,18 @@ class AppColors {
   static const Color purpleLight = Color(0xFFA855F7);
 
   // ── Accent: Teal / Mint ───────────────────────────────────────────────────
-  static const Color accentMint = Color(0xFF30E8E8);
-  static const Color accentMintDark = Color(0xFF112121);
-  static const Color teal = Color(0xFF00897B);
+  static const Color accentMint = Color(0xFF137FEC);
+  static const Color accentMintDark = Color(0xFFEAF3FF);
+  static const Color teal = Color(0xFF0D5FC4);
 
   // ── Accent: Cyan glow ─────────────────────────────────────────────────────
-  static const Color cyanGlow = Color(0xFF19FCFC);
-  static const Color cyanGlowDark = Color(0xFF30E8E8);
+  static const Color cyanGlow = Color(0xFF4DA3FF);
+  static const Color cyanGlowDark = Color(0xFF137FEC);
 
   // ── Dark-Mode Accent & Text Roles ─────────────────────────────────────────
-  static const Color primaryDarkMode = Color(0xFF19FCFC);
-  static const Color primaryDarkModeSoft = Color(0xFF8CFDFF);
-  static const Color primaryDarkModeDeep = Color(0xFF0AAEB8);
+  static const Color primaryDarkMode = Color(0xFF137FEC);
+  static const Color primaryDarkModeSoft = Color(0xFF75B7FF);
+  static const Color primaryDarkModeDeep = Color(0xFF0D5FC4);
   static const Color textOnDarkPrimary = Color(0xFFEFFDFF);
   static const Color textOnDarkSecondary = Color(0xFFB8D7DF);
   static const Color textOnDarkMuted = Color(0xFF88A6B0);

@@ -27,7 +27,7 @@
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>LexiLingo uses the microphone for live speaking practice.</string>
+	<string>Quoriv AI uses the microphone for live speaking practice.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

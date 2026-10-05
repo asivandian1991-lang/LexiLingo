@@ -14,7 +14,7 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const { title, body, icon } = payload.notification ?? {};
-  self.registration.showNotification(title ?? "LexiLingo", {
+  self.registration.showNotification(title ?? "Quoriv AI", {
     body: body ?? "",
     icon: icon ?? "/icons/Icon-192.png",
   });

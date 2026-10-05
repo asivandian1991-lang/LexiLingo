@@ -7,4 +7,17 @@ VOICE_DUPLEX_ENABLED=false
 ENABLE_VOICE_FEATURE=true
 ENABLE_GAMIFICATION=true
 DEBUG_MODE=true
-GOOGLE_SERVER_CLIENT_ID=432329288238-co06he7ecljb7ubupm5mj84t3i0r1u7j.apps.googleusercontent.com
+
+# Enable only after adding your own Firebase project files.
+FIREBASE_ENABLED=true
+
+# AI tutor gateway (keep keys empty in source; fill locally for development)
+NARA_API_KEY=
+NARA_BASE_URL=https://router.bynara.id/v1/chat/completions
+NARA_MODEL=auto/bynara
+NVIDIA_API_KEY=
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1/chat/completions
+NVIDIA_MODEL=openai/gpt-oss-20b
+
+ENABLE_LEGACY_BACKEND_STARTUP=false
+ENABLE_STARTER_REWARD=false

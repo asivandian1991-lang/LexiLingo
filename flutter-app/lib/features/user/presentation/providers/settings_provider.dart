@@ -353,7 +353,11 @@ class SettingsProvider extends ChangeNotifier {
 
     try {
       final result = await _repository.updateSettings(settingsToPersist);
-      return result.fold((failure) => failure.message, (_) => null);
+      final message = result.fold<String?>(
+        (failure) => failure.message,
+        (_) => null,
+      );
+      return message;
     } catch (e) {
       return e.toString();
     }

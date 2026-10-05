@@ -57,7 +57,7 @@ class LegalPage extends StatelessWidget {
     _Section(
       title: '4. Third-Party Services',
       body:
-          'LexiLingo integrates with Google (Firebase, YouTube), which have their own privacy policies. We use Sentry for error monitoring — error reports may include anonymized device information.',
+          'Quoriv AI integrates with Google (Firebase, YouTube), which have their own privacy policies. We use Sentry for error monitoring — error reports may include anonymized device information.',
     ),
     _Section(
       title: '5. Your Rights',
@@ -67,7 +67,7 @@ class LegalPage extends StatelessWidget {
     _Section(
       title: '6. Children\'s Privacy',
       body:
-          'LexiLingo is not directed at children under 13. We do not knowingly collect personal information from children under 13.',
+          'Quoriv AI is not directed at children under 13. We do not knowingly collect personal information from children under 13.',
     ),
     _Section(
       title: '7. Contact',
@@ -80,7 +80,7 @@ class LegalPage extends StatelessWidget {
     _Section(
       title: '1. Acceptance',
       body:
-          'By using LexiLingo, you agree to these Terms. If you do not agree, please do not use the app.',
+          'By using Quoriv AI, you agree to these Terms. If you do not agree, please do not use the app.',
     ),
     _Section(
       title: '2. Account',
@@ -90,12 +90,12 @@ class LegalPage extends StatelessWidget {
     _Section(
       title: '3. Acceptable Use',
       body:
-          'You agree not to misuse LexiLingo, including attempting to reverse-engineer the app, submitting false information, or using automated tools to manipulate learning scores or leaderboards.',
+          'You agree not to misuse Quoriv AI, including attempting to reverse-engineer the app, submitting false information, or using automated tools to manipulate learning scores or leaderboards.',
     ),
     _Section(
       title: '4. Intellectual Property',
       body:
-          'All content, features, and AI-generated responses in LexiLingo are owned by or licensed to LexiLingo. You may not reproduce or distribute content without permission.',
+          'All content, features, and AI-generated responses in Quoriv AI are owned by or licensed to Quoriv AI. You may not reproduce or distribute content without permission.',
     ),
     _Section(
       title: '5. Virtual Goods',
@@ -105,7 +105,7 @@ class LegalPage extends StatelessWidget {
     _Section(
       title: '6. Disclaimer',
       body:
-          'LexiLingo is provided "as is". We make no guarantees about learning outcomes. AI responses are generated and may contain errors — always consult a qualified language teacher for critical needs.',
+          'Quoriv AI is provided "as is". We make no guarantees about learning outcomes. AI responses are generated and may contain errors — always consult a qualified language teacher for critical needs.',
     ),
     _Section(
       title: '7. Termination',

@@ -1,4 +1,4 @@
-# Crowdin Configuration for LexiLingo Flutter App
+# Crowdin Configuration for Quoriv AI Flutter App
 # Docs: https://support.crowdin.com/configuration-file/
 
 project_id_env: CROWDIN_PROJECT_ID

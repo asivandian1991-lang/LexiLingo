@@ -9,17 +9,24 @@ import 'package:lexilingo_app/core/widgets/language_switcher_button.dart';
 class PreAuthAnswers {
   final String name;
   final String nativeLanguage;
+  final String targetLanguage;
 
-  const PreAuthAnswers({required this.name, required this.nativeLanguage});
+  const PreAuthAnswers({
+    required this.name,
+    required this.nativeLanguage,
+    required this.targetLanguage,
+  });
 
   Map<String, dynamic> toJson() => {
     'name': name,
     'native_language': nativeLanguage,
+    'target_language': targetLanguage,
   };
 
   factory PreAuthAnswers.fromJson(Map<String, dynamic> json) => PreAuthAnswers(
     name: json['name'] as String? ?? '',
-    nativeLanguage: json['native_language'] as String? ?? 'vi',
+    nativeLanguage: json['native_language'] as String? ?? 'en',
+    targetLanguage: json['target_language'] as String? ?? 'en',
   );
 }
 
@@ -45,13 +52,14 @@ class _PreAuthQuestionsPageState extends State<PreAuthQuestionsPage>
   final TextEditingController _nameController = TextEditingController();
 
   int _currentPage = 0;
-  String _selectedLanguage = 'vi';
+  String _selectedLanguage = 'en';
+  String _selectedTargetLanguage = 'en';
   String _nameError = '';
 
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
 
-  static const int _totalPages = 2;
+  static const int _totalPages = 3;
 
   static final List<_LangOption> _languages = [
     ...AppLocales.supportedLocales.map(
@@ -60,7 +68,42 @@ class _PreAuthQuestionsPageState extends State<PreAuthQuestionsPage>
         AppLocales.nameOf(locale.languageCode),
       ),
     ),
+    const _LangOption('fa', 'Persian'),
+    const _LangOption('ar', 'Arabic'),
+    const _LangOption('de', 'German'),
+    const _LangOption('it', 'Italian'),
+    const _LangOption('pt', 'Portuguese'),
+    const _LangOption('ru', 'Russian'),
+    const _LangOption('tr', 'Turkish'),
+    const _LangOption('hi', 'Hindi'),
+    const _LangOption('id', 'Indonesian'),
     const _LangOption('other', 'preAuth.otherLanguage'),
+  ];
+
+  static const List<_LangOption> _targetLanguages = [
+    _LangOption('en', 'English'),
+    _LangOption('es', 'Spanish'),
+    _LangOption('fr', 'French'),
+    _LangOption('de', 'German'),
+    _LangOption('it', 'Italian'),
+    _LangOption('pt', 'Portuguese'),
+    _LangOption('ar', 'Arabic'),
+    _LangOption('fa', 'Persian'),
+    _LangOption('tr', 'Turkish'),
+    _LangOption('ru', 'Russian'),
+    _LangOption('ja', 'Japanese'),
+    _LangOption('ko', 'Korean'),
+    _LangOption('zh', 'Chinese'),
+    _LangOption('hi', 'Hindi'),
+    _LangOption('nl', 'Dutch'),
+    _LangOption('pl', 'Polish'),
+    _LangOption('sv', 'Swedish'),
+    _LangOption('no', 'Norwegian'),
+    _LangOption('da', 'Danish'),
+    _LangOption('fi', 'Finnish'),
+    _LangOption('el', 'Greek'),
+    _LangOption('id', 'Indonesian'),
+    _LangOption('other', 'Other'),
   ];
 
   @override
@@ -105,6 +148,7 @@ class _PreAuthQuestionsPageState extends State<PreAuthQuestionsPage>
         PreAuthAnswers(
           name: _nameController.text.trim(),
           nativeLanguage: _selectedLanguage,
+          targetLanguage: _selectedTargetLanguage,
         ),
       );
     }
@@ -201,6 +245,7 @@ class _PreAuthQuestionsPageState extends State<PreAuthQuestionsPage>
                         children: [
                           _buildNameStep(context, isDark, theme),
                           _buildLanguageStep(context, isDark, theme),
+                          _buildTargetLanguageStep(context, isDark, theme),
                         ],
                       ),
                     ),
@@ -447,6 +492,101 @@ class _PreAuthQuestionsPageState extends State<PreAuthQuestionsPage>
       ],
     );
   }
+  Widget _buildTargetLanguageStep(
+    BuildContext context,
+    bool isDark,
+    ThemeData theme,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          'Which language do you want to learn?',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textDark,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'You can change this later. The learning path, AI tutor and practice will adapt automatically.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: isDark ? Colors.white60 : AppColors.textGrey,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.4,
+            children: _targetLanguages.map((lang) {
+              final isSelected = _selectedTargetLanguage == lang.code;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedTargetLanguage = lang.code),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.accentMint.withValues(alpha: 0.2)
+                        : isDark
+                        ? AppColors.slate800.withValues(alpha: 0.5)
+                        : Colors.white,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.accentMint
+                          : isDark
+                          ? AppColors.slate800
+                          : AppColors.slate200,
+                      width: isSelected ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _LanguageOptionIcon(code: lang.code),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          lang.localizedLabel(context),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.accentMint
+                                : isDark
+                                ? Colors.white
+                                : AppColors.textDark,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.accentMint,
+                          size: 18,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
 }
 
 class _LangOption {

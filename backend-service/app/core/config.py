@@ -227,6 +227,11 @@ class Settings(BaseSettings):
     PASSWORD_RESET_URL_BASE_PRODUCTION: str | None = None
     EMAIL_VERIFICATION_URL_BASE: str = "https://lexilingo.me/verify-email"
     EMAIL_VERIFICATION_URL_BASE_PRODUCTION: str | None = None
+    # Resend transactional email
+    RESEND_API_KEY: str | None = None
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
+    RESEND_VERIFICATION_TEMPLATE_ID: str = "quoriv-email-verification"
+    RESEND_TIMEOUT_SECONDS: float = 10.0
 
     # AI Service (optional)
     AI_SERVICE_URL: str = "https://api.lexilingo.me/api/v1"

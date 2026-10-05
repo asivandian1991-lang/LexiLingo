@@ -20,7 +20,7 @@ async def assetlinks() -> JSONResponse:
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
                 "namespace": "android_app",
-                "package_name": "com.lexilingo.lexilingo_app",
+                "package_name": "com.quoriv.languageai",
                 "sha256_cert_fingerprints": [settings.ANDROID_SHA256_FINGERPRINT],
             },
         }

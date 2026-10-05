@@ -62,7 +62,7 @@ class AdminPanelTile extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'LexiLingo Admin mobile',
+                          'Quoriv AI Admin mobile',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,

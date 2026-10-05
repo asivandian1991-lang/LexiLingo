@@ -58,6 +58,11 @@ def verify_firebase_token(id_token: str) -> Optional[Dict[str, Any]]:
         logger.warning("Firebase token verification failed: %s", exc)
         return None
 
+def generate_email_verification_link(email: str) -> str:
+    """Generate a Firebase-managed email verification link for an email address."""
+    _init_firebase_app()
+    return firebase_auth.generate_email_verification_link(email)
+
 
 async def _get_role_id(db: AsyncSession, role_slug: str) -> Optional[uuid.UUID]:
     """Load a role id by slug."""

@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi.concurrency import run_in_threadpool
+import httpx
 
 from app.core.config import settings
 
@@ -50,6 +51,61 @@ class EmailService:
                 server.starttls()
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(message)
+
+    @classmethod
+    async def send_firebase_verification_via_resend(
+        cls,
+        *,
+        to_email: str,
+        first_name: str,
+        verify_url: str,
+        idempotency_key: str | None = None,
+    ) -> bool:
+        """Send the branded Firebase verification email using Resend Templates."""
+        if not settings.RESEND_API_KEY:
+            logger.warning("RESEND_API_KEY is not configured; custom verification email not sent.")
+            return False
+
+        headers = {
+            "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
+        payload = {
+            "from": settings.RESEND_FROM_EMAIL,
+            "to": [to_email],
+            "template": {
+                "id": settings.RESEND_VERIFICATION_TEMPLATE_ID,
+                "variables": {
+                    "FIRST_NAME": first_name or "there",
+                    "VERIFY_URL": verify_url,
+                },
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=settings.RESEND_TIMEOUT_SECONDS) as client:
+                response = await client.post(
+                    "https://api.resend.com/emails",
+                    headers=headers,
+                    json=payload,
+                )
+            if 200 <= response.status_code < 300:
+                logger.info("Resend verification email accepted for %s", to_email)
+                return True
+
+            logger.error(
+                "Resend verification email failed for %s: status=%s body=%s",
+                to_email,
+                response.status_code,
+                response.text[:1000],
+            )
+            return False
+        except Exception as exc:  # pragma: no cover - external IO
+            logger.exception("Resend verification request failed for %s: %s", to_email, exc)
+            return False
 
     @classmethod
     async def send_password_reset_email(

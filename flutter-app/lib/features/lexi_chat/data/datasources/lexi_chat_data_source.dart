@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:lexilingo_app/core/network/api_client.dart';
+import 'package:lexilingo_app/core/services/ai_gateway_client.dart';
 import 'package:lexilingo_app/core/utils/app_logger.dart';
 import 'package:lexilingo_app/core/utils/constants.dart';
 import 'package:lexilingo_app/features/lexi_chat/domain/entities/lexi_message.dart';
@@ -31,8 +32,31 @@ class LexiMessagesMetadata {
 /// Remote data source for Lexi Chat — talks to AI Service at :8001.
 class LexiChatDataSource {
   final ApiClient apiClient;
+  final AiGatewayClient? aiGatewayClient;
 
-  LexiChatDataSource({required this.apiClient});
+  LexiChatDataSource({
+    required this.apiClient,
+    this.aiGatewayClient,
+  });
+
+  /// When an external gateway is configured, text tutor chat is fully local
+  /// from the app's perspective: no legacy Lexi backend request is attempted.
+  bool get _useDirectTextAi => aiGatewayClient?.isConfigured ?? false;
+
+  String _buildTutorSystemPrompt({
+    required String learnerLevel,
+    required String nativeLanguage,
+    String? storyContext,
+  }) {
+    return [
+      if (storyContext != null && storyContext.trim().isNotEmpty)
+        storyContext.trim(),
+      'Learner CEFR level: $learnerLevel.',
+      'Learner native language: $nativeLanguage.',
+      'Act as a language tutor. Keep replies concise, supportive and practical.',
+      'Correct important mistakes gently and end with a useful follow-up question.',
+    ].join(' ');
+  }
 
   bool _isSessionNotFoundError(Object error) {
     final msg = error.toString().toLowerCase();
@@ -164,6 +188,15 @@ class LexiChatDataSource {
 
   /// Create a new Lexi session.
   Future<LexiSession> createSession({required String userId}) async {
+    if (_useDirectTextAi) {
+      final now = DateTime.now();
+      return LexiSession(
+        sessionId: 'local_${now.microsecondsSinceEpoch}',
+        userId: userId,
+        createdAt: now,
+      );
+    }
+
     try {
       final json = await apiClient.post(
         '/lexi/sessions',
@@ -206,6 +239,28 @@ class LexiChatDataSource {
     String? storyContext,
     String? idempotencyKey,
   }) async {
+    // Direct external gateway path: skip the legacy backend entirely.
+    if (inputType == 'text' && _useDirectTextAi) {
+      final gateway = aiGatewayClient!;
+      final reply = await gateway.chat(
+        userMessage: message,
+        systemPrompt: _buildTutorSystemPrompt(
+          learnerLevel: learnerLevel,
+          nativeLanguage: nativeLanguage,
+          storyContext: storyContext,
+        ),
+      );
+
+      return LexiMessage(
+        id: 'gateway_${DateTime.now().microsecondsSinceEpoch}',
+        role: 'assistant',
+        content: _sanitizeAssistantContent(reply),
+        timestamp: DateTime.now(),
+        corrections: const [],
+        linkedConcepts: const [],
+      );
+    }
+
     final payload = {
       'user_id': userId,
       'session_id': sessionId,
@@ -218,15 +273,50 @@ class LexiChatDataSource {
       if (storyContext != null) 'story_context': storyContext,
     };
 
-    final json = await apiClient.post(
-      '/lexi/chat',
-      body: payload,
-      headers: {
-        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
-          'X-Idempotency-Key': idempotencyKey,
-      },
-      timeout: AppConstants.aiOperationTimeout,
-    );
+    Map<String, dynamic> json;
+    try {
+      json = await apiClient.post(
+        '/lexi/chat',
+        body: payload,
+        headers: {
+          if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+            'X-Idempotency-Key': idempotencyKey,
+        },
+        timeout: AppConstants.aiOperationTimeout,
+      );
+    } catch (backendError) {
+      final gateway = aiGatewayClient;
+      final canFallback =
+          inputType == 'text' && gateway != null && gateway.isConfigured;
+
+      if (!canFallback) {
+        rethrow;
+      }
+
+      logWarn(
+        _tag,
+        'Legacy AI backend failed; using direct AI gateway fallback: '
+        '$backendError',
+      );
+
+      final fallbackText = await gateway.chat(
+        userMessage: message,
+        systemPrompt: _buildTutorSystemPrompt(
+          learnerLevel: learnerLevel,
+          nativeLanguage: nativeLanguage,
+          storyContext: storyContext,
+        ),
+      );
+
+      return LexiMessage(
+        id: 'gateway_${DateTime.now().millisecondsSinceEpoch}',
+        role: 'assistant',
+        content: _sanitizeAssistantContent(fallbackText),
+        timestamp: DateTime.now(),
+        corrections: const [],
+        linkedConcepts: const [],
+      );
+    }
 
     final data = json['data'] ?? json;
     logDebug(_tag, 'sendMessage response keys: ${data.keys}');
@@ -295,7 +385,7 @@ class LexiChatDataSource {
 
   /// Get messages for a Lexi session.
   Future<List<LexiMessage>> getMessages({required String sessionId}) async {
-    if (sessionId.isEmpty) return [];
+    if (sessionId.isEmpty || _useDirectTextAi) return [];
 
     try {
       final json = await apiClient.get('/lexi/sessions/$sessionId/messages');
@@ -326,7 +416,7 @@ class LexiChatDataSource {
     int limit = 50,
     String? cursor,
   }) async {
-    if (sessionId.isEmpty) {
+    if (sessionId.isEmpty || _useDirectTextAi) {
       return const LexiMessagesPage(
         messages: [],
         hasMore: false,
@@ -395,7 +485,7 @@ class LexiChatDataSource {
   Future<LexiMessagesMetadata> getMessagesMetadata({
     required String sessionId,
   }) async {
-    if (sessionId.isEmpty) {
+    if (sessionId.isEmpty || _useDirectTextAi) {
       return const LexiMessagesMetadata(
         totalCount: 0,
         hasMessages: false,
@@ -439,6 +529,8 @@ class LexiChatDataSource {
   }
 
   Future<List<LexiSession>> getSessions({required String userId}) async {
+    if (_useDirectTextAi) return [];
+
     try {
       final json = await apiClient.get('/lexi/sessions/user/$userId');
       final data = json['data'] ?? json;
@@ -464,6 +556,7 @@ class LexiChatDataSource {
     required String sessionId,
     required String title,
   }) async {
+    if (_useDirectTextAi) return;
     await apiClient.post(
       '/lexi/sessions/$sessionId/rename',
       body: {'title': title},
@@ -471,6 +564,7 @@ class LexiChatDataSource {
   }
 
   Future<void> deleteSession({required String sessionId}) async {
+    if (_useDirectTextAi) return;
     await apiClient.post('/lexi/sessions/$sessionId/delete', body: {});
   }
 
@@ -492,6 +586,46 @@ class LexiChatDataSource {
     String nativeLanguage = 'vi',
     String? storyContext,
   }) async* {
+    // Fast direct gateway path for text chat. This intentionally avoids
+    // /lexi/stream on api.lexilingo.me, which can block on backend timeouts.
+    if (inputType == 'text' && _useDirectTextAi) {
+      yield const LexiStreamThinking();
+
+      try {
+        final reply = _sanitizeAssistantContent(
+          await aiGatewayClient!.chat(
+            userMessage: message,
+            systemPrompt: _buildTutorSystemPrompt(
+              learnerLevel: learnerLevel,
+              nativeLanguage: nativeLanguage,
+              storyContext: storyContext,
+            ),
+          ),
+        );
+
+        // Preserve the existing typewriter UI without waiting for legacy SSE.
+        final pieces = RegExp(r'\S+\s*')
+            .allMatches(reply)
+            .map((m) => m.group(0)!)
+            .toList();
+        for (final piece in pieces) {
+          yield LexiStreamChunk(piece);
+        }
+
+        yield LexiStreamDone(
+          messageId: 'gateway_${DateTime.now().microsecondsSinceEpoch}',
+          sessionId: sessionId,
+          fullText: reply,
+          corrections: const [],
+          linkedConcepts: const [],
+          metadata: const {'provider': 'external_gateway'},
+        );
+      } catch (e) {
+        yield LexiStreamError('Direct AI gateway failed: $e');
+      }
+      return;
+    }
+
     final payload = {
       'user_id': userId,
       'session_id': sessionId,

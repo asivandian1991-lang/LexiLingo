@@ -8,6 +8,7 @@ import 'package:lexilingo_app/core/widgets/widgets.dart';
 import 'package:lexilingo_app/features/user/presentation/providers/settings_provider.dart';
 import 'package:lexilingo_app/features/level/presentation/providers/level_provider.dart';
 import 'package:lexilingo_app/core/utils/constants.dart';
+import 'package:lexilingo_app/core/network/api_config.dart';
 import 'package:lexilingo_app/core/theme/app_tactile_theme.dart';
 import 'package:lexilingo_app/core/di/injection_container.dart' as di;
 import 'package:lexilingo_app/core/services/entitlement_service.dart';
@@ -112,6 +113,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   /// server-verified entitlement state, once per login. RevenueCat's SDK
   /// otherwise tracks an anonymous device ID the backend can't look up.
   Future<void> _syncEntitlements(AuthProvider authProvider) async {
+    if (!ApiConfig.enableLegacyBackendStartup) return;
+
     final userId = authProvider.currentUser?.id;
     if (userId == null ||
         _entitlementSyncedForUserId == userId ||
@@ -205,7 +208,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     await prefs.remove(_preAuthAnswersKey);
 
     await authProvider.submitOnboarding(
-      answers.toJson(),
+      {
+        ...answers.toJson(),
+        if (preAuth?.targetLanguage != null)
+          'target_language': preAuth!.targetLanguage,
+      },
       displayName: (preAuth?.name.isNotEmpty ?? false) ? preAuth!.name : null,
       nativeLanguage: preAuth?.nativeLanguage,
     );

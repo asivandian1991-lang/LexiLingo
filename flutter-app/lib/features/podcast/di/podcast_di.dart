@@ -38,8 +38,8 @@ Future<void> _registerPodcastAudioHandler() async {
     final audioHandler = await AudioService.init<PodcastAudioHandler>(
       builder: () => PodcastAudioHandler(),
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.lexilingo.podcast.channel',
-        androidNotificationChannelName: 'LexiLingo Podcast',
+        androidNotificationChannelId: 'com.quoriv.languageai.podcast.channel',
+        androidNotificationChannelName: 'Quoriv AI Podcast',
         androidNotificationOngoing: true,
         androidShowNotificationBadge: true,
       ),

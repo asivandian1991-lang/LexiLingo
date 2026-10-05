@@ -42,6 +42,28 @@ class _EmailVerificationPendingPageState
     });
   }
 
+  Future<void> _checkVerification() async {
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.refreshCurrentUser();
+    if (!mounted) return;
+
+    if (authProvider.isAuthenticated) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email verified successfully. You can sign in now.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isError = true;
+      _message = authProvider.errorMessage ??
+          'Email is not verified yet. Open the verification link in your inbox, then try again.';
+    });
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -124,6 +146,20 @@ class _EmailVerificationPendingPageState
                             'auth.emailVerificationResend'.tr(),
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _resendLoading ? null : _checkVerification,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    child: const Text(
+                      'I verified my email',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
