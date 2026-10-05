@@ -79,7 +79,7 @@ class AuthProvider extends ChangeNotifier {
   List<String> _splitDisplayName(String? displayName) {
     final normalized = (displayName ?? '').trim();
     if (normalized.isEmpty) return const ['', ''];
-    final parts = normalized.split(RegExp(r'\\s+'));
+    final parts = normalized.split(RegExp(r'\s+'));
     if (parts.length == 1) return [parts.first, ''];
     return [parts.first, parts.sublist(1).join(' ')];
   }
@@ -350,44 +350,46 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final auth = firebase_auth.FirebaseAuth.instance;
+      await auth.setLanguageCode('en');
+      final firebaseUser = auth.currentUser;
       if (firebaseUser == null) {
-        _errorMessage =
-            'Please sign in with this email first, then resend the verification email.';
+        _errorMessage = 'Your verification session expired. Please sign in again first.';
         return false;
       }
 
-      if ((firebaseUser.email ?? '').trim().toLowerCase() !=
-          email.trim().toLowerCase()) {
-        _errorMessage =
-            'The signed-in account does not match this email address.';
+      final normalizedEmail = email.trim().toLowerCase();
+      final currentEmail = (firebaseUser.email ?? '').trim().toLowerCase();
+      if (currentEmail != normalizedEmail) {
+        _errorMessage = 'The signed-in Firebase account does not match this email address.';
         return false;
       }
 
       await firebaseUser.reload();
-      final refreshedUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final refreshedUser = auth.currentUser;
       if (refreshedUser == null) {
         _errorMessage = 'Your Firebase session expired. Please sign in again.';
         return false;
       }
-
       if (refreshedUser.emailVerified) {
         _errorMessage = null;
         return true;
       }
 
       await refreshedUser.sendEmailVerification();
+      debugPrint('Firebase verification email resent to $normalizedEmail');
       _errorMessage = null;
       return true;
     } on firebase_auth.FirebaseAuthException catch (e) {
+      debugPrint('Firebase resend verification failed: ${e.code} ${e.message}');
       if (e.code == 'too-many-requests') {
-        _errorMessage =
-            'Too many verification emails were requested. Please wait and try again.';
+        _errorMessage = 'Too many verification emails were requested. Please wait a few minutes and try again.';
       } else {
-        _errorMessage = e.message ?? 'Could not resend verification email.';
+        _errorMessage = e.message ?? 'Could not resend the verification email.';
       }
       return false;
     } catch (e) {
+      debugPrint('Resend verification error: $e');
       _errorMessage = _parseErrorMessage(e.toString());
       return false;
     } finally {
@@ -395,7 +397,6 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   /// Reset password with token from email link.
   Future<bool> resetPassword({
     required String token,
@@ -478,7 +479,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Register new user
+  // Register new user with Firebase Auth.
   Future<void> register({
     required String email,
     required String username,
@@ -492,24 +493,23 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
+      final auth = firebase_auth.FirebaseAuth.instance;
+      await auth.setLanguageCode('en');
       final fallbackNames = _splitDisplayName(displayName);
       final resolvedFirstName = (firstName ?? fallbackNames[0]).trim();
       final resolvedLastName = (lastName ?? fallbackNames[1]).trim();
       final normalizedEmail = email.trim().toLowerCase();
 
-      final credential = await firebase_auth.FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
+      final credential = await auth.createUserWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
       );
-
       final firebaseUser = credential.user;
       if (firebaseUser == null) {
         throw StateError('Firebase did not return a user after registration.');
       }
 
-      final resolvedDisplayName =
-          '$resolvedFirstName $resolvedLastName'.trim();
+      final resolvedDisplayName = '$resolvedFirstName $resolvedLastName'.trim();
       if (resolvedDisplayName.isNotEmpty) {
         await firebaseUser.updateDisplayName(resolvedDisplayName);
       }
@@ -522,35 +522,49 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (!firebaseUser.emailVerified) {
-        await firebaseUser.sendEmailVerification();
+        try {
+          await firebaseUser.sendEmailVerification();
+          debugPrint('Firebase verification email sent successfully to $normalizedEmail');
+        } on firebase_auth.FirebaseAuthException catch (e) {
+          debugPrint('Firebase verification email send failed after account creation: ${e.code} ${e.message}');
+          _errorMessage = 'Your account was created, but the verification email could not be sent. Use Resend verification email on the next screen.';
+          _user = null;
+          _isJustLoggedIn = false;
+          return;
+        }
       }
 
       _user = null;
       _errorMessage = null;
       _isJustLoggedIn = false;
     } on firebase_auth.FirebaseAuthException catch (e) {
+      debugPrint('Firebase registration failed: ${e.code} ${e.message}');
       switch (e.code) {
         case 'email-already-in-use':
-          _errorMessage = 'This email is already registered.';
+          _errorMessage = 'This email is already registered. Please log in instead.';
           break;
         case 'invalid-email':
           _errorMessage = 'Invalid email address.';
           break;
         case 'weak-password':
-          _errorMessage = 'Password is too weak.';
+          _errorMessage = 'Password is too weak. Use at least 6 characters.';
           break;
         case 'operation-not-allowed':
-          _errorMessage =
-              'Email/password registration is not enabled in Firebase.';
+          _errorMessage = 'Email/password registration is not enabled in Firebase.';
+          break;
+        case 'network-request-failed':
+          _errorMessage = 'Network error. Check your connection and try again.';
+          break;
+        case 'too-many-requests':
+          _errorMessage = 'Too many attempts. Please wait a few minutes and try again.';
           break;
         default:
-          _errorMessage =
-              e.message ?? 'Firebase registration failed. Please try again.';
+          _errorMessage = e.message ?? 'Firebase registration failed. Please try again.';
       }
       _user = null;
       _isJustLoggedIn = false;
     } catch (e) {
-      debugPrint("Register error: $e");
+      debugPrint('Register error: $e');
       _errorMessage = _parseErrorMessage(e.toString());
       _user = null;
       _isJustLoggedIn = false;
@@ -559,7 +573,6 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   // Update user profile (display name, avatar)
   Future<void> updateProfile({String? displayName, String? avatarUrl}) async {
     try {
