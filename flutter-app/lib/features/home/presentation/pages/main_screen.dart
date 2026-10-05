@@ -58,14 +58,16 @@ class _MainScreenState extends State<MainScreen> {
     _currentIndex = widget.initialIndex.clamp(0, _pageCount - 1);
     // Only build the initial page; all other pages are deferred.
     _getPage(_currentIndex);
-    if (_currentIndex == 2) {
-      _lexiWarmedUp = true;
-      _warmupAiModels();
+    if (ApiConfig.enableLegacyBackendStartup) {
+      if (_currentIndex == 2) {
+        _lexiWarmedUp = true;
+        _warmupAiModels();
+      }
+      _triggerPreWarming();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showPendingStarterReward();
+      });
     }
-    _triggerPreWarming();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showPendingStarterReward();
-    });
   }
 
   Future<void> _showPendingStarterReward() async {
@@ -156,7 +158,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _selectTab(int index) {
-    if (index == 2 && !_lexiWarmedUp) {
+    if (ApiConfig.enableLegacyBackendStartup &&
+        index == 2 &&
+        !_lexiWarmedUp) {
       _lexiWarmedUp = true;
       _warmupAiModels();
     }
