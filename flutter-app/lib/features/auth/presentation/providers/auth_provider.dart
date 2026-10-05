@@ -239,12 +239,12 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final idToken = await googleSignInService.signIn();
-      if (idToken == GoogleSignInService.redirectInProgressMarker) {
+      final result = await googleSignInService.signIn();
+      if (result == GoogleSignInService.redirectInProgressMarker) {
         return;
       }
 
-      if (idToken == null) {
+      if (result == null) {
         final signInError = googleSignInService.lastError?.toLowerCase();
         _errorMessage =
             signInError == null || signInError.contains('cancelled')
@@ -253,23 +253,19 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
-      final googleCredential =
-          firebase_auth.GoogleAuthProvider.credential(idToken: idToken);
-      final credential = await firebase_auth.FirebaseAuth.instance
-          .signInWithCredential(googleCredential);
-      final firebaseUser = credential.user;
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
       if (firebaseUser == null) {
-        throw StateError('Firebase Google Sign-In did not return a user.');
+        throw StateError('Firebase Google Sign-In did not create a session.');
       }
 
       await _adoptFirebaseUser(firebaseUser);
     } on firebase_auth.FirebaseAuthException catch (e) {
-      debugPrint("Firebase Google sign in error: $e");
+      debugPrint('Firebase Google sign in error: $e');
       _errorMessage = e.message ?? 'Google Sign-In failed.';
       _user = null;
       _isJustLoggedIn = false;
     } catch (e) {
-      debugPrint("Google sign in error: $e");
+      debugPrint('Google sign in error: $e');
       _errorMessage = _parseErrorMessage(e.toString());
       _user = null;
       _isJustLoggedIn = false;
@@ -278,7 +274,6 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
   // Sign in with email and password through Firebase Auth.
   Future<void> signInWithEmailPassword(String email, String password) async {
     try {
