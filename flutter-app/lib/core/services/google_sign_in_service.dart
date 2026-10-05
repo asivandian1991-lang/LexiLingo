@@ -185,6 +185,25 @@ class GoogleSignInService {
       return null;
     }
   }
+  String _mapMobileGoogleError(PlatformException e) {
+    final code = e.code.toLowerCase();
+    final message = (e.message ?? '').toLowerCase();
+    final details = (e.details ?? '').toString().toLowerCase();
+    final combined = '$code $message $details';
+
+    if (combined.contains('10') ||
+        combined.contains('developer_error') ||
+        combined.contains('12500')) {
+      return 'Google Sign-In Android config mismatch (SHA/client ID).';
+    }
+    if (combined.contains('network')) {
+      return 'Network error during Google Sign-In. Please check your connection.';
+    }
+    if (combined.contains('cancel')) {
+      return 'cancelled';
+    }
+    return e.message ?? 'Google Sign-In failed on mobile.';
+  }
   /// Sign out from Google without revoking the user's OAuth grant.
   Future<void> signOut() async {
     try {
