@@ -35,7 +35,9 @@ class ApiConfig {
     if (configured != null && configured.isNotEmpty) {
       return configured == 'true' || configured == '1' || configured == 'yes';
     }
-    return !isProd;
+    // The legacy rewards endpoint currently depends on the old backend.
+    // Keep it off unless explicitly enabled so app startup never waits on it.
+    return false;
   }
 
   // ── Backend URL ─────────────────────────────────────────────────────────────
