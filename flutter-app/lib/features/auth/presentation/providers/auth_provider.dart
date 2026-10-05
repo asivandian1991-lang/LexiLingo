@@ -1,14 +1,10 @@
 import 'dart:async';
 
-import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lexilingo_app/core/di/service_locator.dart';
 import 'package:lexilingo_app/core/error/failures.dart';
-import 'package:lexilingo_app/core/network/api_client.dart';
-import 'package:lexilingo_app/core/services/deep_link_service.dart';
-import 'package:lexilingo_app/core/services/firebase_messaging_service.dart';
 import 'package:lexilingo_app/core/services/google_sign_in_service.dart';
 import 'package:lexilingo_app/core/services/purchases_service.dart';
 import 'package:lexilingo_app/core/services/session_expired_service.dart';
@@ -145,72 +141,6 @@ class AuthProvider extends ChangeNotifier {
     }
 
     await ref.set(data, SetOptions(merge: true));
-  }
-
-  Future<void> _syncEmailPasswordToFirebase({
-    required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
-  }) async {
-    firebase_auth.UserCredential credential;
-
-    try {
-      credential = await firebase_auth.FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-        credential = await firebase_auth.FirebaseAuth.instance
-            .createUserWithEmailAndPassword(email: email, password: password);
-      } else {
-        rethrow;
-      }
-    }
-
-    final firebaseUser = credential.user;
-    if (firebaseUser == null) {
-      throw StateError('Firebase did not return a user.');
-    }
-
-    final displayName = '$firstName $lastName'.trim();
-    if (displayName.isNotEmpty && firebaseUser.displayName != displayName) {
-      await firebaseUser.updateDisplayName(displayName);
-    }
-
-    await _upsertFirebaseIdentity(
-      firebaseUser: firebaseUser,
-      firstName: firstName,
-      lastName: lastName,
-      email: email,
-    );
-  }
-
-  Future<void> _syncGoogleToFirebase({
-    required String idToken,
-    required UserEntity backendUser,
-  }) async {
-    final googleCredential =
-        firebase_auth.GoogleAuthProvider.credential(idToken: idToken);
-    final credential = await firebase_auth.FirebaseAuth.instance
-        .signInWithCredential(googleCredential);
-
-    final firebaseUser = credential.user;
-    if (firebaseUser == null) {
-      throw StateError('Firebase Google Sign-In did not return a user.');
-    }
-
-    final names = _splitDisplayName(
-      firebaseUser.displayName?.trim().isNotEmpty == true
-          ? firebaseUser.displayName
-          : backendUser.displayName,
-    );
-
-    await _upsertFirebaseIdentity(
-      firebaseUser: firebaseUser,
-      firstName: names[0],
-      lastName: names[1],
-      email: firebaseUser.email ?? backendUser.email,
-    );
   }
 
   // Clear just logged in flag (call after welcome screen)
@@ -496,19 +426,6 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
-    }
-  }
-
-  // Claim a pending referral code stored by DeepLinkService before sign-in.
-  Future<void> _claimPendingReferral() async {
-    final code = DeepLinkService.instance.pendingReferralCode;
-    if (code == null) return;
-    DeepLinkService.instance.pendingReferralCode = null;
-    try {
-      await sl<ApiClient>().post('/referral/claim/$code', body: {});
-      debugPrint('Referral code $code claimed successfully');
-    } catch (e) {
-      debugPrint('Referral claim failed (non-blocking): $e');
     }
   }
 
