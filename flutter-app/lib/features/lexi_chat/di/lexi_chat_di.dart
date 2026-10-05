@@ -13,6 +13,12 @@ void registerLexiChatModule() {
       (dotenv.isInitialized ? dotenv.env['NARA_API_KEY'] : null) ?? '';
   final nvidiaApiKey =
       (dotenv.isInitialized ? dotenv.env['NVIDIA_API_KEY'] : null) ?? '';
+  final naraBaseUrl =
+      (dotenv.isInitialized ? dotenv.env['NARA_BASE_URL'] : null) ??
+      'https://router.bynara.id/v1/chat/completions';
+  final nvidiaBaseUrl =
+      (dotenv.isInitialized ? dotenv.env['NVIDIA_BASE_URL'] : null) ??
+      'https://integrate.api.nvidia.com/v1/chat/completions';
   final naraModel =
       (dotenv.isInitialized ? dotenv.env['NARA_MODEL'] : null) ?? 'auto/bynara';
   final nvidiaModel =
@@ -23,6 +29,8 @@ void registerLexiChatModule() {
     () => AiGatewayClient(
       naraApiKey: naraApiKey,
       nvidiaApiKey: nvidiaApiKey,
+      naraBaseUrl: naraBaseUrl,
+      nvidiaBaseUrl: nvidiaBaseUrl,
       naraModel: naraModel,
       nvidiaModel: nvidiaModel,
     ),
