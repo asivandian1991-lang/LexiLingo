@@ -7,7 +7,6 @@ import 'package:lexilingo_app/core/widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
-import 'email_verification_pending_page.dart';
 import 'forgot_password_page.dart';
 import 'register_page.dart';
 import 'package:lexilingo_app/core/theme/app_theme.dart';
@@ -57,14 +56,6 @@ class _LoginPageState extends State<LoginPage> {
     return normalized.contains('incorrect email or password') ||
         normalized.contains('invalid email or password') ||
         normalized.contains('auth_invalid');
-  }
-
-  bool _isEmailNotVerifiedMessage(String? message) {
-    if (message == null) return false;
-    final normalized = message.toLowerCase();
-    return normalized.contains('not verified') ||
-        normalized.contains('chưa được xác thực') ||
-        normalized.contains('chưa xác thực');
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -366,7 +357,6 @@ class _LoginPageState extends State<LoginPage> {
                                   final messenger = ScaffoldMessenger.of(
                                     context,
                                   );
-                                  final navigator = Navigator.of(context);
                                   await authProvider.signInWithEmailPassword(
                                     _emailController.text.trim(),
                                     _passwordController.text,
@@ -377,19 +367,6 @@ class _LoginPageState extends State<LoginPage> {
                                   if (authProvider.isAuthenticated) {
                                     await _persistCredentialPreference();
                                     setState(() => _failedAttempts = 0);
-                                  } else if (_isEmailNotVerifiedMessage(
-                                    authProvider.errorMessage,
-                                  )) {
-                                    if (!mounted) return;
-                                    final email = _emailController.text.trim();
-                                    navigator.push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            EmailVerificationPendingPage(
-                                              email: email,
-                                            ),
-                                      ),
-                                    );
                                   } else if (_isInvalidCredentialMessage(
                                     authProvider.errorMessage,
                                   )) {
