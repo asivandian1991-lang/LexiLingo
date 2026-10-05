@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:lexilingo_app/core/network/api_client.dart';
+import 'package:lexilingo_app/core/services/ai_gateway_client.dart';
 import 'package:lexilingo_app/core/utils/app_logger.dart';
 import 'package:lexilingo_app/core/utils/constants.dart';
 import 'package:lexilingo_app/features/lexi_chat/domain/entities/lexi_message.dart';
@@ -31,8 +32,12 @@ class LexiMessagesMetadata {
 /// Remote data source for Lexi Chat — talks to AI Service at :8001.
 class LexiChatDataSource {
   final ApiClient apiClient;
+  final AiGatewayClient? aiGatewayClient;
 
-  LexiChatDataSource({required this.apiClient});
+  LexiChatDataSource({
+    required this.apiClient,
+    this.aiGatewayClient,
+  });
 
   bool _isSessionNotFoundError(Object error) {
     final msg = error.toString().toLowerCase();
@@ -218,15 +223,55 @@ class LexiChatDataSource {
       if (storyContext != null) 'story_context': storyContext,
     };
 
-    final json = await apiClient.post(
-      '/lexi/chat',
-      body: payload,
-      headers: {
-        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
-          'X-Idempotency-Key': idempotencyKey,
-      },
-      timeout: AppConstants.aiOperationTimeout,
-    );
+    Map<String, dynamic> json;
+    try {
+      json = await apiClient.post(
+        '/lexi/chat',
+        body: payload,
+        headers: {
+          if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+            'X-Idempotency-Key': idempotencyKey,
+        },
+        timeout: AppConstants.aiOperationTimeout,
+      );
+    } catch (backendError) {
+      final gateway = aiGatewayClient;
+      final canFallback =
+          inputType == 'text' && gateway != null && gateway.isConfigured;
+
+      if (!canFallback) {
+        rethrow;
+      }
+
+      logWarn(
+        _tag,
+        'Legacy AI backend failed; using direct AI gateway fallback: '
+        '$backendError',
+      );
+
+      final systemPrompt = [
+        if (storyContext != null && storyContext.trim().isNotEmpty)
+          storyContext.trim(),
+        'Learner CEFR level: $learnerLevel.',
+        'Learner native language: $nativeLanguage.',
+        'Act as a language tutor. Keep replies concise, supportive and practical.',
+        'Correct important mistakes gently and end with a useful follow-up question.',
+      ].join(' ');
+
+      final fallbackText = await gateway.chat(
+        userMessage: message,
+        systemPrompt: systemPrompt,
+      );
+
+      return LexiMessage(
+        id: 'gateway_${DateTime.now().millisecondsSinceEpoch}',
+        role: 'assistant',
+        content: _sanitizeAssistantContent(fallbackText),
+        timestamp: DateTime.now(),
+        corrections: const [],
+        linkedConcepts: const [],
+      );
+    }
 
     final data = json['data'] ?? json;
     logDebug(_tag, 'sendMessage response keys: ${data.keys}');
