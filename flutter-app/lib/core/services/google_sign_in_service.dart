@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../utils/app_logger.dart';
@@ -30,12 +29,6 @@ class GoogleSignInService {
           googleSignIn ??
           GoogleSignIn(
             scopes: ['email', 'profile'],
-            // serverClientId is only for Android/iOS
-            serverClientId: kIsWeb
-                ? null
-                : (dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.isNotEmpty == true
-                    ? dotenv.env['GOOGLE_SERVER_CLIENT_ID']
-                    : null),
           );
 
   /// Sign in with Google and return the Firebase ID token.
@@ -120,24 +113,14 @@ class GoogleSignInService {
   Future<String?> _extractGoogleIdTokenAndSignOut(
     UserCredential userCredential,
   ) async {
-    // Extract the Google ID token from the OAuth credential
-    final oauthCredential = userCredential.credential as OAuthCredential?;
-    String? googleIdToken = oauthCredential?.idToken;
-
-    // Web fallback: some browsers/policies return a credential without idToken.
-    // In that case we use Firebase ID token and let backend verify it.
-    googleIdToken ??= await userCredential.user?.getIdToken(true);
-
-    if (googleIdToken == null) {
-      logError(_tag, 'Failed to get Google ID token from Firebase credential');
+    final firebaseToken = await userCredential.user?.getIdToken(true);
+    if (firebaseToken == null) {
+      logError(_tag, 'Failed to get Firebase ID token after Google Sign-In');
       return null;
     }
 
-    // Sign out from Firebase immediately — the app manages its own session.
-    await FirebaseAuth.instance.signOut();
-
-    logInfo(_tag, 'Google Sign In successful (web)');
-    return googleIdToken;
+    logInfo(_tag, 'Google Sign In successful (web + Firebase)');
+    return firebaseToken;
   }
 
   bool _shouldFallbackToRedirect(String code, String? message) {
