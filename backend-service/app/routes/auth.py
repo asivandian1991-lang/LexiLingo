@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.core.redis import RedisClient
+from app.core.firebase_auth import verify_firebase_token, generate_email_verification_link
 from app.core.security import (
     get_password_hash,
     get_password_hash_async,
@@ -94,6 +95,63 @@ def _build_user_response(user: User) -> UserResponse:
 # exists or not, preventing user enumeration via timing side-channels.
 _DUMMY_HASH: str = get_password_hash("_lexilingo_timing_normalization_placeholder_")
 
+
+
+@router.post("/firebase/send-verification-email")
+async def send_firebase_verification_email_resend(
+    authorization: str | None = Header(default=None),
+):
+    """Send a branded Firebase verification email through Resend."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Firebase bearer token",
+        )
+
+    id_token = authorization.split(" ", 1)[1].strip()
+    claims = verify_firebase_token(id_token)
+    if not claims:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Firebase token",
+        )
+
+    email = (claims.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Firebase token does not contain an email address",
+        )
+
+    if bool(claims.get("email_verified", False)):
+        return {"message": "Email is already verified."}
+
+    try:
+        verify_url = generate_email_verification_link(email)
+    except Exception as exc:
+        logger.exception("Could not generate Firebase verification link for %s: %s", email, exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not generate verification link",
+        )
+
+    display_name = (claims.get("name") or "").strip()
+    first_name = display_name.split()[0] if display_name else "there"
+    uid = str(claims.get("uid") or claims.get("sub") or email)
+    bucket = int(datetime.now(timezone.utc).timestamp() // 300)
+    sent = await EmailService.send_firebase_verification_via_resend(
+        to_email=email,
+        first_name=first_name,
+        verify_url=verify_url,
+        idempotency_key=f"firebase-verify/{uid}/{bucket}",
+    )
+    if not sent:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Verification email provider is unavailable",
+        )
+
+    return {"message": "Verification email sent."}
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
