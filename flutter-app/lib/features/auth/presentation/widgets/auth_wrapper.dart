@@ -18,6 +18,7 @@ import '../pages/login_page.dart';
 import '../pages/register_page.dart';
 import '../pages/welcome_page.dart';
 import '../pages/onboarding_page.dart';
+import '../pages/intro_slides_page.dart';
 import '../pages/pre_auth_questions_page.dart';
 
 class AuthWrapper extends StatefulWidget {
@@ -30,6 +31,7 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _showOnboarding = false;
   bool _showPreAuthWelcome = false;
+  bool _showIntroSlides = false;
   bool _showPreAuthQuestions = false;
   bool _wasAuthenticated = false;
   bool _isResolvingFlow = false;
@@ -68,10 +70,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (!mounted) return;
     setState(() {
       _showPreAuthWelcome = shouldShowWelcome;
+      _showIntroSlides = shouldShowWelcome;
       _isShowingRegister = false;
       _preAuthFlowResolved = true;
       _isResolvingPreAuthFlow = false;
     });
+  }
+
+  Future<void> _finishIntroSlides() async {
+    if (!mounted) return;
+    setState(() => _showIntroSlides = false);
   }
 
   Future<void> _dismissPreAuthWelcome({required bool openRegister}) async {
@@ -276,6 +284,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _entitlementSyncedForUserId = null;
       _preAuthFlowResolved = false;
       _showPreAuthWelcome = false;
+      _showIntroSlides = false;
       _showPreAuthQuestions = false;
       _isShowingRegister = false;
     }
@@ -314,6 +323,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
         currentPage = Scaffold(
           body: LoadingScreen(message: 'common.loading'.tr()),
         );
+      } else if (_showIntroSlides) {
+        currentPage = IntroSlidesPage(onFinished: _finishIntroSlides);
       } else if (_showPreAuthWelcome) {
         currentPage = WelcomePage(
           onGetStarted: _startPreAuthQuestions,
@@ -375,7 +386,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         key: ValueKey<String>(
           authProvider.isAuthenticated
               ? (_showOnboarding ? 'onboarding' : 'main')
-              : (_showPreAuthWelcome
+              : (_showIntroSlides
+                    ? 'intro'
+                    : _showPreAuthWelcome
                     ? 'welcome'
                     : (_isShowingRegister ? 'register' : 'login')),
         ),
