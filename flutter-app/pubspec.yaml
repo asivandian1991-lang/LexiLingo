@@ -179,6 +179,7 @@ flutter:
     - assets/sounds/
     - assets/logo/
     - assets/out-app/
+    - assets/onboarding/
     - assets/flags/
 
   # An image asset can refer to one or more resolution-specific "variants", see
